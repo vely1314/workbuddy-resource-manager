@@ -1,0 +1,1549 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WorkBuddy 个人工作台</title>
+<style>
+:root{
+  --bg:#0a0e14; --sidebar:#0e141c; --surface:#121924; --surface-2:#161f2b;
+  --border:#22303f; --border-strong:#31445a;
+  --text:#e4edf5; --muted:#8a9bad; --faint:#5f7183;
+  --cyan:#22d3ee; --teal:#34d399; --amber:#fbbf24; --red:#f87171; --violet:#a78bfa;
+  --radius:10px; --accent-soft:rgba(34,211,238,.1); --accent-line:rgba(34,211,238,.4); --topbar-bg:rgba(10,14,20,.9);
+  --font:system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"Cascadia Code",Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:13px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.app{display:flex;min-height:100vh}
+
+/* ---------- sidebar ---------- */
+.sidebar{width:232px;flex:0 0 232px;background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+.brand{padding:22px 20px 18px;border-bottom:1px solid var(--border)}
+.brand-mark{display:flex;align-items:center;gap:10px}
+.brand-icon{width:44px;height:44px;border:1px solid var(--cyan);border-radius:9px;display:flex;align-items:center;justify-content:center;color:var(--cyan);font-family:var(--mono);font-size:14px;font-weight:600;cursor:pointer;position:relative;overflow:hidden;flex:0 0 44px;transition:border-color .15s}
+.brand-icon:hover{border-color:var(--text)}
+.brand-icon img{width:100%;height:100%;object-fit:cover}
+.brand-icon .brand-edit{position:absolute;inset:0;background:rgba(0,0,0,.55);color:#fff;font-size:10px;font-family:var(--font);display:none;align-items:center;justify-content:center;text-align:center;line-height:1.2}
+.brand-icon:hover .brand-edit{display:flex}
+.brand-name{font-size:15px;font-weight:600;letter-spacing:.06em;cursor:pointer;position:relative}
+.brand-name:hover{color:var(--cyan)}
+.brand-sub{margin-top:8px;font-family:var(--mono);font-size:10px;color:var(--faint);letter-spacing:.06em;cursor:pointer}
+.brand-sub:hover{color:var(--text)}
+.nav{flex:1;overflow-y:auto;padding:14px 12px}
+.nav-group{margin-bottom:18px}
+.nav-label{font-family:var(--mono);font-size:10px;color:var(--faint);letter-spacing:.12em;padding:0 10px;margin-bottom:8px;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border-radius:7px;color:var(--muted);cursor:pointer;border:1px solid transparent;background:transparent;text-align:left;font-family:var(--font);font-size:13px;transition:background .15s,color .15s,border-color .15s}
+.nav-item:hover{background:var(--surface);color:var(--text)}
+.nav-item.active{background:var(--surface-2);color:var(--cyan);border-color:var(--border-strong)}
+.nav-item svg{width:15px;height:15px;flex:0 0 15px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.nav-item .badge{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--faint);background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:0 5px}
+.sidebar-foot{padding:14px 20px;border-top:1px solid var(--border);font-family:var(--mono);font-size:10px;color:var(--faint);line-height:1.8}
+.dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--teal);margin-right:6px;vertical-align:1px}
+.dot.off{background:var(--amber)}
+.dot.dead{background:var(--red)}
+
+/* ---------- main ---------- */
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.topbar{height:60px;flex:0 0 60px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:16px;padding:0 30px;background:var(--topbar-bg)}
+.crumb{font-size:12px;color:var(--faint);font-family:var(--mono)}
+.crumb b{color:var(--text);font-weight:500}
+.topbar-spacer{flex:1}
+.search{width:280px;height:32px;border:1px solid var(--border);border-radius:6px;background:var(--surface);display:flex;align-items:center;gap:8px;padding:0 10px;color:var(--faint);position:relative}
+.search svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.5;flex:0 0 14px}
+.search input{flex:1;min-width:0;border:0;outline:none;background:transparent;color:var(--text);font-family:var(--font);font-size:11px}
+.search input::placeholder{color:var(--faint)}
+.search-results{position:absolute;top:38px;right:0;width:440px;max-height:420px;overflow:auto;background:var(--surface);border:1px solid var(--border-strong);border-radius:8px;box-shadow:0 16px 40px rgba(0,0,0,.45);display:none;z-index:70;padding:6px}
+.search-results.show{display:block}
+.search-result{display:flex;gap:10px;align-items:flex-start;padding:9px 10px;border-radius:6px;cursor:pointer}
+.search-result:hover,.search-result.focus{background:var(--surface-2)}
+.search-result .sr-tag{flex:0 0 auto;font-family:var(--mono);font-size:9px;color:var(--cyan);border:1px solid var(--border-strong);border-radius:4px;padding:1px 5px;margin-top:2px}
+.search-result .sr-main{min-width:0;flex:1}
+.search-result .sr-title{font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.search-result .sr-sub{font-family:var(--mono);font-size:10px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.search-result .sr-snippet{font-size:10px;color:var(--muted);margin-top:5px;line-height:1.5;word-break:break-all}
+.search-empty{padding:18px 12px;text-align:center;color:var(--faint);font-size:11px}
+.icon-btn{width:32px;height:32px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.icon-btn:hover{color:var(--cyan);border-color:var(--cyan)}
+.icon-btn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.5}
+.avatar{width:28px;height:28px;border-radius:50%;background:var(--surface-2);border:1px solid var(--border-strong);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;color:var(--cyan);overflow:hidden;flex:0 0 28px}
+.avatar img{width:100%;height:100%;object-fit:cover}
+.content{flex:1;padding:26px 30px 48px;max-width:1440px;width:100%;margin:0 auto}
+.notice{border:1px solid var(--border);border-left:2px solid var(--amber);background:var(--surface);border-radius:6px;padding:9px 14px;color:var(--muted);font-size:12px;margin-bottom:24px}
+.notice b{color:var(--amber);font-weight:500}
+.view{display:none}
+.view.active{display:block}
+.page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:22px}
+.page-title{font-size:20px;font-weight:500;letter-spacing:.01em}
+.page-desc{color:var(--muted);font-size:12px;margin-top:5px}
+.btn{height:32px;padding:0 13px;border:1px solid var(--border-strong);border-radius:6px;background:var(--surface-2);color:var(--text);font-family:var(--font);font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+.btn:hover{border-color:var(--cyan);color:var(--cyan)}
+.btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.6}
+.btn.primary{background:var(--accent-soft);border-color:var(--accent-line);color:var(--cyan)}
+
+/* ---------- generic blocks ---------- */
+.grid{display:grid;gap:14px}
+.g4{grid-template-columns:repeat(4,1fr)}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g2{grid-template-columns:repeat(2,1fr)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px}
+.card:hover{border-color:var(--border-strong)}
+.stat-label{font-family:var(--mono);font-size:10px;color:var(--faint);letter-spacing:.1em;text-transform:uppercase}
+.stat-value{font-size:26px;font-weight:500;margin-top:9px;font-family:var(--mono);line-height:1}
+.stat-foot{margin-top:11px;font-size:11px;color:var(--muted)}
+.stat-foot em{font-style:normal;color:var(--teal)}
+.section-title{font-size:13px;font-weight:500;margin-bottom:13px;display:flex;align-items:center;gap:9px}
+.section-title:before{content:"";width:3px;height:13px;background:var(--cyan);border-radius:2px}
+.section-title .hint{font-family:var(--mono);font-size:10px;color:var(--faint);font-weight:400;margin-left:auto}
+
+.entry{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;cursor:pointer;transition:border-color .15s,background .15s}
+.entry:hover{border-color:var(--cyan);background:var(--surface-2)}
+.entry-top{display:flex;align-items:center;justify-content:space-between}
+.entry-icon{width:30px;height:30px;border:1px solid var(--border-strong);border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--cyan);font-family:var(--mono);font-size:11px}
+.entry-icon svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.5}
+.entry-arrow{color:var(--faint);font-size:15px}
+.entry-name{font-size:13px;margin-top:12px;font-weight:500}
+.entry-desc{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.5;min-height:32px}
+
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.panel-head{padding:13px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.panel-head .t{font-size:13px;font-weight:500}
+.panel-head .s{font-family:var(--mono);font-size:10px;color:var(--faint)}
+.list-row{display:flex;align-items:center;gap:12px;padding:11px 16px;border-bottom:1px solid var(--border)}
+.list-row:last-child{border-bottom:none}
+.list-row .row-main{flex:1;min-width:0}
+.row-title{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row-sub{font-family:var(--mono);font-size:10px;color:var(--faint);margin-top:2px}
+.row-time{font-family:var(--mono);font-size:10px;color:var(--faint);white-space:nowrap}
+.tag{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:4px;font-family:var(--mono);font-size:10px;border:1px solid var(--border-strong);color:var(--muted);white-space:nowrap}
+.tag.ok{color:var(--teal);border-color:rgba(52,211,153,.35);background:rgba(52,211,153,.07)}
+.tag.info{color:var(--cyan);border-color:rgba(34,211,238,.35);background:rgba(34,211,238,.07)}
+.tag.warn{color:var(--amber);border-color:rgba(251,191,36,.35);background:rgba(251,191,36,.07)}
+.tag.off{color:var(--faint)}
+.tag.violet{color:var(--violet);border-color:rgba(167,139,250,.35);background:rgba(167,139,250,.07)}
+
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-family:var(--mono);font-size:10px;color:var(--faint);font-weight:400;letter-spacing:.08em;text-transform:uppercase;padding:11px 16px;border-bottom:1px solid var(--border)}
+td{padding:12px 16px;border-bottom:1px solid var(--border);font-size:12px;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+.tabs{display:flex;gap:6px;margin-bottom:14px}
+.tab{padding:6px 12px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--muted);font-family:var(--font);font-size:11px;cursor:pointer}
+.tab.active{color:var(--cyan);border-color:rgba(34,211,238,.4);background:rgba(34,211,238,.07)}
+
+.split{display:grid;grid-template-columns:230px 1fr;gap:14px}
+.tree{padding:10px 0;font-size:12px}
+.tree-item{padding:6px 14px;display:flex;align-items:center;gap:8px;color:var(--muted);cursor:pointer}
+.tree-item:hover{background:var(--surface-2)}
+.tree-item.active{color:var(--cyan);background:var(--surface-2)}
+.tree-item svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.5}
+.tree-item .nest{padding-left:14px}
+
+.source{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border)}
+.source:last-child{border-bottom:none}
+.source-icon{width:30px;height:30px;border:1px solid var(--border-strong);border-radius:7px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;color:var(--muted)}
+.source-name{font-size:12px}
+.source-sub{font-family:var(--mono);font-size:10px;color:var(--faint);margin-top:2px}
+.source .tag{margin-left:auto}
+
+.mem-layer{padding:16px}
+.mem-top{display:flex;align-items:center;gap:10px}
+.mem-title{font-size:13px;font-weight:500}
+.mem-path{font-family:var(--mono);font-size:10px;color:var(--faint);margin-top:8px;word-break:break-all}
+.mem-desc{font-size:11px;color:var(--muted);margin-top:10px;line-height:1.6}
+.mem-bar{height:3px;background:var(--border);border-radius:2px;margin-top:14px;overflow:hidden}
+.mem-bar i{display:block;height:100%;background:var(--teal)}
+
+.form-row{display:grid;grid-template-columns:150px 1fr;gap:16px;align-items:start;padding:14px 0;border-bottom:1px solid var(--border)}
+.form-row:last-child{border-bottom:none}
+.form-label{font-size:12px;color:var(--muted);padding-top:8px}
+.form-label small{display:block;font-family:var(--mono);font-size:10px;color:var(--faint);margin-top:3px}
+.field{height:36px;border:1px solid var(--border);border-radius:6px;background:var(--bg);padding:0 11px;color:var(--text);font-family:var(--font);font-size:12px;width:100%}
+.field:focus{outline:none;border-color:var(--cyan)}
+textarea.field{height:72px;padding:9px 11px;resize:vertical;line-height:1.6}
+.foot-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+.note{font-size:11px;color:var(--faint);margin-top:8px;line-height:1.6}
+.entry-actions{margin-top:12px;padding-top:10px;border-top:1px solid var(--border)}
+.group-check{margin-right:2px;cursor:pointer}
+input[type="checkbox"]{accent-color:var(--cyan);cursor:pointer}
+.skill-trail{display:flex;align-items:center;gap:10px;margin-bottom:12px;font-size:11px;color:var(--faint)}
+.skill-detail-body{max-height:360px;overflow:auto;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:12px;margin-top:12px;font-family:var(--mono);font-size:11px;line-height:1.7;white-space:pre-wrap;color:var(--text)}
+.skill-related{margin-top:12px;display:flex;flex-wrap:wrap;gap:6px}
+.skill-related button{background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--cyan);font-family:var(--mono);font-size:10px;padding:4px 8px;cursor:pointer}
+.skill-related button:hover{border-color:var(--cyan)}
+.link-btn{background:none;border:none;color:var(--muted);font-family:var(--font);font-size:11px;cursor:pointer;padding:3px 6px}
+.link-btn:hover{color:var(--cyan)}
+.link-btn.danger:hover{color:var(--red)}
+.modal-mask{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;z-index:50}
+.modal-mask.show{display:flex}
+.modal{width:420px;max-width:calc(100vw - 40px);background:var(--surface);border:1px solid var(--border-strong);border-radius:10px;padding:20px}
+.modal-title{font-size:14px;font-weight:500;display:flex;align-items:center;gap:9px}
+.modal-title:before{content:"";width:3px;height:14px;background:var(--amber);border-radius:2px}
+.modal-body{font-size:12px;color:var(--muted);line-height:1.7;margin:14px 0 0}
+.modal-target{display:none;font-family:var(--mono);font-size:11px;color:var(--text);background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:7px 9px;margin-top:10px;word-break:break-all}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+.btn.danger{background:rgba(248,113,113,.08);border-color:rgba(248,113,113,.4);color:var(--red)}
+.btn-back{height:34px;padding:0 15px;border:1px solid rgba(34,211,238,.5);border-radius:6px;background:rgba(34,211,238,.12);color:var(--cyan);font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.btn-back:hover{background:rgba(34,211,238,.22);border-color:var(--cyan)}
+.toast{position:fixed;right:26px;bottom:24px;background:var(--surface-2);border:1px solid var(--border-strong);border-left:2px solid var(--teal);border-radius:7px;padding:11px 15px;font-size:12px;color:var(--text);opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;z-index:60;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+.trash-meta{font-family:var(--mono);font-size:10px;color:var(--faint);margin-top:3px}
+.setting-row{padding:13px 0;border-bottom:1px solid var(--border)}
+.setting-label{font-size:12px;color:var(--muted);margin-bottom:8px}
+.setting-label small{display:block;font-family:var(--mono);font-size:10px;color:var(--faint);margin-top:3px}
+.setting-input{display:flex;gap:8px}
+.setting-input .field{flex:1}
+.setting-status{font-family:var(--mono);font-size:10px;margin-top:12px;padding:8px 10px;border:1px solid var(--border);border-radius:5px;color:var(--muted);background:var(--bg)}
+.setting-status.bad{color:var(--amber);border-color:rgba(251,191,36,.3)}
+.kb-toolbar{display:flex;gap:8px;margin-bottom:12px}
+.kb-toolbar .field{flex:1}
+.kb-doc-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+.kb-doc-tags .tag{font-size:9px;padding:0 5px;height:18px}
+.sim-link{font-family:var(--mono);font-size:10px;color:var(--faint);background:none;border:none;cursor:pointer;text-decoration:underline;padding:0;margin-top:9px}
+.sim-link:hover{color:var(--amber)}
+.conflict-name{font-family:var(--mono);font-size:11px;color:var(--cyan);background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:7px 9px;margin-top:9px;word-break:break-all}
+.refresh-info{font-family:var(--mono);font-size:10px;color:var(--faint);white-space:nowrap}
+.notify-time{font-family:var(--mono);font-size:11px;color:var(--cyan);min-width:52px}
+.notify-bar{height:3px;background:var(--border);border-radius:2px;margin-top:10px;overflow:hidden}
+.notify-bar i{display:block;height:100%;background:var(--cyan)}
+
+/* ---------- theme ---------- */
+.theme-preset{cursor:pointer;transition:border-color .15s,transform .12s}
+.theme-preset:hover{transform:translateY(-2px);border-color:var(--cyan)}
+.theme-preset.active{border-color:var(--cyan);box-shadow:0 0 0 1px var(--cyan) inset}
+.theme-swatch{display:flex;height:34px;border-radius:6px;overflow:hidden;border:1px solid var(--border);margin-bottom:12px}
+.theme-swatch i{flex:1}
+.theme-row{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--border)}
+.theme-row:last-child{border-bottom:none}
+.theme-row-label{flex:0 0 116px;font-size:12px;color:var(--text)}
+.theme-row-label small{display:block;font-family:var(--mono);font-size:9px;color:var(--faint);margin-top:2px}
+.theme-row-ctrl{flex:1;display:flex;align-items:center;gap:10px}
+input[type=color]{width:40px;height:32px;border:1px solid var(--border-strong);border-radius:6px;background:var(--surface);padding:2px;cursor:pointer}
+input[type=range]{flex:1;accent-color:var(--cyan);cursor:pointer}
+.range-val{font-family:var(--mono);font-size:11px;color:var(--cyan);min-width:38px;text-align:right}
+.theme-hex{font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:2px 7px;min-width:76px}
+.wb-theme-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
+.wb-theme-row:last-child{border-bottom:none}
+.wb-theme-dot{width:26px;height:26px;border-radius:6px;border:1px solid var(--border);flex:0 0 26px}
+.wb-theme-name{flex:1;font-size:12px}
+.wb-theme-name small{display:block;font-family:var(--mono);font-size:9px;color:var(--faint)}
+.avatar-input{display:none}
+/* 圆角滑块作用于主要组件 */
+.card,.entry,.panel,.modal,.theme-preset{border-radius:var(--radius)}
+.btn,.btn-back,.field,.icon-btn,.search{border-radius:calc(var(--radius) * 0.6)}
+@media(max-width:1080px){.g4{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(2,1fr)}.split{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+<symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></symbol>
+<symbol id="i-tools" viewBox="0 0 24 24"><path d="M14 7a4 4 0 0 0-5 5l-6 6 3 3 6-6a4 4 0 0 0 5-5l-3 3-3-3z"/></symbol>
+<symbol id="i-block" viewBox="0 0 24 24"><path d="M5 7h14v10H5z"/><path d="M9 7V4h6v3"/><path d="M9 12h6"/></symbol>
+<symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7h6l2 2h10v10H3z"/></symbol>
+<symbol id="i-project" viewBox="0 0 24 24"><path d="M4 5h7l2 2h7v12H4z"/><path d="M8 12h8M8 16h5"/></symbol>
+<symbol id="i-book" viewBox="0 0 24 24"><path d="M5 4h12a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2z"/><path d="M9 8h6M9 12h6"/></symbol>
+<symbol id="i-memory" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/><path d="M9 9h6v6H9z"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/></symbol>
+<symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6"/><path d="M15 15l5 5"/></symbol>
+<symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2 6"/><path d="M20 4v7h-7"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></symbol>
+<symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></symbol>
+<symbol id="i-palette" viewBox="0 0 24 24"><path d="M12 3a9 9 0 0 0 0 18c1.1 0 2-.9 2-2 0-.6-.3-1-.6-1.4-.3-.4-.4-.7-.4-1.1 0-.8.7-1.5 1.5-1.5H17c2.2 0 4-1.8 4-4 0-4.4-4-8-9-8Z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7.5" r="1"/><circle cx="15" cy="8" r="1"/></symbol>
+</svg>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">
+        <div class="brand-icon" id="brandIcon" title="点击更换头像">WB<span class="brand-edit">更换<br>头像</span></div>
+        <div class="brand-name" id="brandName" title="点击修改标题">CONSOLE</div>
+      </div>
+      <div class="brand-sub" id="brandSub" title="点击修改副标题">LOCAL WORKSPACE / PROTOTYPE</div>
+      <input type="file" id="avatarFile" class="avatar-input" accept="image/*">
+    </div>
+    <nav class="nav">
+      <div class="nav-group">
+        <div class="nav-label">总览</div>
+        <button class="nav-item active" data-view="dashboard"><svg><use href="#i-grid"/></svg>工作台概览</button>
+        <button class="nav-item" data-view="notifications"><svg><use href="#i-bell"/></svg>通知中心<span class="badge" id="notifyBadge">3</span></button>
+      </div>
+      <div class="nav-group">
+        <div class="nav-label">管理</div>
+        <button class="nav-item" data-view="tools"><svg><use href="#i-tools"/></svg>连接器状态<span class="badge" id="connectorBadge">0</span></button>
+        <button class="nav-item" data-view="skills"><svg><use href="#i-block"/></svg>Skill 管理<span class="badge" id="skillBadge">0</span></button>
+        <button class="nav-item" data-view="files"><svg><use href="#i-folder"/></svg>文件管理</button>
+        <button class="nav-item" data-view="projects"><svg><use href="#i-project"/></svg>项目管理<span class="badge" id="projectBadge">0</span></button>
+        <button class="nav-item" data-view="trash"><svg><use href="#i-trash"/></svg>回收站<span class="badge" id="trashBadge">0</span></button>
+      </div>
+      <div class="nav-group">
+        <div class="nav-label">知识</div>
+        <button class="nav-item" data-view="knowledge"><svg><use href="#i-book"/></svg>知识库管理</button>
+        <button class="nav-item" data-view="memory"><svg><use href="#i-memory"/></svg>记忆管理<span class="badge">3</span></button>
+      </div>
+      <div class="nav-group">
+        <div class="nav-label">系统</div>
+        <button class="nav-item" data-view="theme"><svg><use href="#i-palette"/></svg>主题</button>
+        <button class="nav-item" data-view="profile"><svg><use href="#i-user"/></svg>个人资料</button>
+      </div>
+    </nav>
+    <div class="sidebar-foot"><span class="dot" id="serviceDot"></span><span id="serviceText">本地服务 检测中…</span><br><span id="serviceMeta">正在读取本地数据</span></div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="crumb">WORKSPACE / <b id="crumb">工作台概览</b></div>
+      <div class="topbar-spacer"></div>
+      <div class="search" id="globalSearchWrap">
+        <svg><use href="#i-search"/></svg>
+        <input id="globalSearch" type="text" placeholder="全局搜索：项目 / 文件 / Skill / 记忆" autocomplete="off" spellcheck="false">
+        <div class="search-results" id="searchResults"></div>
+      </div>
+      <div class="icon-btn" id="topRefresh" title="刷新本地数据"><svg><use href="#i-refresh"/></svg></div>
+      <div class="avatar" id="topAvatar">WB</div>
+    </header>
+
+    <div class="content">
+      <div class="notice"><b>本地控制台</b> · 当前页面直接读写本机文件。删除为软删除（移入回收站），清理为永久删除且不可恢复。</div>
+
+      <!-- 概览 -->
+      <section class="view active" id="view-dashboard">
+        <div class="page-head">
+          <div><div class="page-title">工作台概览</div><div class="page-desc" id="workspacePath">本地 WorkBuddy 管理与状态总览</div></div>
+          <button class="btn primary" id="refreshAll"><svg><use href="#i-refresh"/></svg>刷新</button>
+        </div>
+        <div class="grid g4" style="margin-bottom:22px">
+          <div class="card"><div class="stat-label">Skills</div><div class="stat-value" id="statSkills">—</div><div class="stat-foot" id="footSkills">读取中</div></div>
+          <div class="card"><div class="stat-label">Projects</div><div class="stat-value" id="statProjects">—</div><div class="stat-foot">WorkBuddy 工作区目录</div></div>
+          <div class="card"><div class="stat-label">Trash</div><div class="stat-value" id="statTrash">—</div><div class="stat-foot" id="footTrash">读取中</div></div>
+          <div class="card"><div class="stat-label">Alerts</div><div class="stat-value" id="statAlerts">—</div><div class="stat-foot">定时任务与到期提醒</div></div>
+        </div>
+        <div class="grid g2" style="grid-template-columns:1.4fr 1fr">
+          <div>
+            <div class="section-title">模块入口<span class="hint">MODULES / 07</span></div>
+            <div class="grid g3">
+              <div class="entry" data-go="tools"><div class="entry-top"><div class="entry-icon"><svg><use href="#i-tools"/></svg></div><span class="entry-arrow">›</span></div><div class="entry-name">连接器状态</div><div class="entry-desc">外部服务连接与授权快照</div></div>
+              <div class="entry" data-go="skills"><div class="entry-top"><div class="entry-icon"><svg><use href="#i-block"/></svg></div><span class="entry-arrow">›</span></div><div class="entry-name">Skill 管理</div><div class="entry-desc">查看已安装技能与说明</div></div>
+              <div class="entry" data-go="files"><div class="entry-top"><div class="entry-icon"><svg><use href="#i-folder"/></svg></div><span class="entry-arrow">›</span></div><div class="entry-name">文件管理</div><div class="entry-desc">浏览与编辑工作区文件</div></div>
+              <div class="entry" data-go="projects"><div class="entry-top"><div class="entry-icon"><svg><use href="#i-project"/></svg></div><span class="entry-arrow">›</span></div><div class="entry-name">项目管理</div><div class="entry-desc">WorkBuddy 项目目录</div></div>
+              <div class="entry" data-go="knowledge"><div class="entry-top"><div class="entry-icon"><svg><use href="#i-book"/></svg></div><span class="entry-arrow">›</span></div><div class="entry-name">知识库</div><div class="entry-desc">本地文本索引 + 外部数据源快照</div></div>
+              <div class="entry" data-go="memory"><div class="entry-top"><div class="entry-icon"><svg><use href="#i-memory"/></svg></div><span class="entry-arrow">›</span></div><div class="entry-name">记忆管理</div><div class="entry-desc">三层记忆与读写边界</div></div>
+              <div class="entry" data-go="theme"><div class="entry-top"><div class="entry-icon"><svg><use href="#i-palette"/></svg></div><span class="entry-arrow">›</span></div><div class="entry-name">主题</div><div class="entry-desc">预设 · 自定义配色 · 同步 WorkBuddy</div></div>
+            </div>
+          </div>
+          <div>
+            <div class="section-title">系统状态<span class="hint">STATUS</span></div>
+            <div class="panel">
+              <div class="list-row"><div class="row-main"><div class="row-title">本地后端服务</div><div class="row-sub">127.0.0.1:8765</div></div><span class="tag ok" id="tagService">检测中</span></div>
+              <div class="list-row"><div class="row-main"><div class="row-title">WorkBuddy 环境</div><div class="row-sub" id="statusWorkbuddy">—</div></div><span class="tag" id="tagWorkbuddy">—</span></div>
+              <div class="list-row"><div class="row-main"><div class="row-title">文件读写权限</div><div class="row-sub">workspace scope</div></div><span class="tag ok" id="tagPermission">就绪</span></div>
+              <div class="list-row"><div class="row-main"><div class="row-title">回收站目录</div><div class="row-sub" id="statusTrash">—</div></div><span class="tag" id="tagTrash">—</span></div>
+              <div class="list-row"><div class="row-main"><div class="row-title">连接器授权</div><div class="row-sub" id="statusConnector">会话层快照</div></div><span class="tag info" id="tagConnector">—</span></div>
+              <div class="list-row"><div class="row-main"><div class="row-title">云端画像</div><div class="row-sub">server managed</div></div><span class="tag off">只读</span></div>
+            </div>
+            <div class="section-title" style="margin-top:22px">最近刷新<span class="hint">SYNC</span></div>
+            <div class="panel"><div class="list-row"><div class="row-main"><div class="row-title" id="lastSync">—</div><div class="row-sub">页面数据来自本地后端实时读取</div></div></div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 工具 -->
+      <section class="view" id="view-tools">
+        <div class="page-head"><div><div class="page-title">连接器状态</div><div class="page-desc">外部服务连接与授权快照</div></div><button class="btn" id="refreshConnectors">刷新</button></div>
+        <div class="grid g4" id="connectorStats">
+          <div class="card"><div class="stat-label">已连接</div><div class="stat-value" id="connConnected">0</div></div>
+          <div class="card"><div class="stat-label">已停用</div><div class="stat-value" id="connDisabled">0</div></div>
+          <div class="card"><div class="stat-label">内置能力</div><div class="stat-value" id="connBuiltin">0</div></div>
+          <div class="card"><div class="stat-label">快照时间</div><div class="stat-value" id="connSyncedAt" style="font-size:14px">—</div></div>
+        </div>
+        <div class="section-title" style="margin-top:22px">外部连接器<span class="hint">CONNECTORS</span></div>
+        <div class="panel"><table>
+          <thead><tr><th style="width:18%">名称</th><th style="width:12%">状态</th><th style="width:10%">启用</th><th style="width:10%">绑定</th><th>插件 ID</th></tr></thead>
+          <tbody id="connectorRows"><tr><td colspan="5">读取中…</td></tr></tbody>
+        </table></div>
+        <div class="section-title" style="margin-top:22px">内置能力<span class="hint">BUILT-IN</span></div>
+        <div class="panel" id="builtinRows"><div class="list-row"><div class="row-main"><div class="row-title">读取中…</div></div></div></div>
+        <div class="note" id="connectorNote">说明：连接器授权状态由 WorkBuddy 会话层管理，本页展示的是对话桥接写入的快照，非实时读取。连接、断开或启用操作需在 WorkBuddy 界面的连接器管理入口完成；刷新本页不会改变授权状态。如需更新快照，请在对话中让我重新同步。</div>
+      </section>
+
+      <!-- Skills -->
+      <section class="view" id="view-skills">
+        <div class="page-head"><div><div class="page-title">Skill 管理</div><div class="page-desc">按来源分组 · 勾选后批量删除 · 点击分组查看技能 · 点击技能查看说明</div></div><div style="display:flex;gap:8px"><button class="btn danger" id="deleteGroups">删除选中 Skill 分组</button><button class="btn danger" id="deleteSkills" style="display:none">删除选中技能</button><button class="btn" id="refreshSkills">刷新列表</button></div></div>
+        <div id="skillGroups"><div class="grid g3"><div class="card">读取中…</div></div></div>
+        <div id="skillGroupView" style="display:none">
+          <div class="skill-trail"><button class="btn-back" id="skillBack">‹ 返回上一级</button><span id="skillTrailLabel"></span></div>
+          <input class="field" id="skillSearch" placeholder="在组内搜索技能名称或说明…" style="margin-bottom:12px">
+          <div class="panel"><table>
+            <thead><tr><th style="width:4%"><input type="checkbox" id="skillCheckAll"></th><th style="width:20%">名称</th><th style="width:14%">角色</th><th style="width:10%">级别</th><th>说明</th><th style="width:10%">操作</th></tr></thead>
+            <tbody id="skillRows"></tbody>
+          </table></div>
+        </div>
+        <div class="note">说明：分组依据为 SKILL.md 元数据（domain / author）与安装标记（_skillhub_meta.json），非 WorkBuddy 官方来源字段。点击技能可查看完整说明与 related-skills 关联技能。启用与卸载接口尚未接入，本页仅展示。</div>
+      </section>
+
+      <!-- 文件 -->
+      <section class="view" id="view-files">
+        <div class="page-head"><div><div class="page-title">文件管理</div><div class="page-desc" id="fileWorkspace">按项目浏览全部产出 · 点击文件夹进入查看详细内容</div></div><button class="btn" id="refreshFiles">刷新</button></div>
+        <div id="fileProjectList"><div class="grid g3" id="fileProjectGrid"><div class="card">读取中…</div></div></div>
+        <div id="fileDetailView" style="display:none">
+          <div class="skill-trail"><button class="btn-back" id="fileBack">‹ 返回上一级</button><span id="fileTrailLabel"></span></div>
+          <div class="panel"><div class="panel-head"><span class="t" id="fileDirLabel">项目产出</span><span class="s" id="fileDetailCount">0 ITEMS</span></div>
+            <div style="padding:10px 14px;border-bottom:1px solid var(--border)"><button class="btn" id="openFolderBtn">打开文件夹</button><span style="font-family:var(--mono);font-size:10px;color:var(--faint);margin-left:10px" id="openFolderPath"></span></div>
+            <table>
+              <thead><tr><th>名称</th><th style="width:16%">类型</th><th style="width:14%">大小</th><th style="width:20%">修改时间</th><th style="width:18%">操作</th></tr></thead>
+              <tbody id="fileRows"><tr><td colspan="5">读取中…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="note">说明：以项目文件夹为单位展示全部产出；进入后可逐层查看子目录、编辑文本文件或删除条目。"打开文件夹"将在系统文件资源管理器中打开当前目录。删除为软删除，可在回收站恢复。</div>
+      </section>
+
+      <!-- 项目 -->
+      <section class="view" id="view-projects">
+        <div class="page-head"><div><div class="page-title">项目管理</div><div class="page-desc">WorkBuddy 目录下全部项目工作区 · 点击卡片可进入查看内容</div></div><button class="btn" id="refreshProjects">刷新</button></div>
+        <div class="grid g3" id="projectGrid"><div class="card">读取中…</div></div>
+        <div class="note">说明：当前工作区标记为受保护，不可删除；其余项目删除后进入回收站，可恢复。</div>
+      </section>
+
+      <!-- 知识库 -->
+      <section class="view" id="view-knowledge">
+        <div class="page-head">
+          <div><div class="page-title">知识库管理</div><div class="page-desc" id="kbDesc">本地文本索引 · 可检索与编辑</div></div>
+          <div style="display:flex;gap:8px">
+            <button class="btn" id="kbOpenFolder">打开索引目录</button>
+            <button class="btn primary" id="kbRebuild">重建索引</button>
+          </div>
+        </div>
+        <div class="grid g4" style="margin-bottom:22px">
+          <div class="card"><div class="stat-label">Indexed Docs</div><div class="stat-value" id="kbCount">—</div><div class="stat-foot" id="kbBuiltAt">读取中</div></div>
+          <div class="card"><div class="stat-label">Index Root</div><div class="stat-value" style="font-size:12px;word-break:break-all;line-height:1.5" id="kbRoot">—</div><div class="stat-foot">本地目录，未连接云端</div></div>
+          <div class="card"><div class="stat-label">Local Search</div><div class="stat-value" id="kbSearchable">—</div><div class="stat-foot">已纳入顶栏全局搜索</div></div>
+          <div class="card"><div class="stat-label">External Sources</div><div class="stat-value" id="kbConnectors">—</div><div class="stat-foot">连接器快照，只读</div></div>
+        </div>
+        <div class="grid g2" style="grid-template-columns:1.5fr 1fr">
+          <div>
+            <div class="section-title">本地索引<span class="hint" id="kbListHint">DOCUMENTS</span></div>
+            <div class="kb-toolbar"><input class="field" id="kbSearch" placeholder="搜索标题、标签或正文…"><button class="btn" id="kbClearSearch">清除</button></div>
+            <div class="panel" id="kbList"><div class="list-row"><div class="row-main"><div class="row-title">读取中…</div></div></div></div>
+            <div class="note">仅扫描索引目录中的 .md / .markdown / .txt / .json / .csv / .html / .xml 文件；新建或修改文件后点击“重建索引”。</div>
+          </div>
+          <div>
+            <div class="section-title">索引目录<span class="hint">SETTINGS</span></div>
+            <div class="panel" style="padding:14px">
+              <div class="setting-label">目录路径<small>必须是已存在的本地目录，留空恢复默认</small></div>
+              <div class="setting-input"><input class="field" id="kbPathInput" placeholder="选择或输入本地目录"><button class="btn" id="kbPickFolder">检查</button></div>
+              <div class="foot-actions"><button class="btn primary" id="kbSavePath">保存并重建</button><button class="btn" id="kbResetPath">恢复默认</button></div>
+              <div class="setting-status" id="kbStatus">—</div>
+            </div>
+            <div class="section-title" style="margin-top:22px">外部数据源快照<span class="hint">CONNECTORS</span></div>
+            <div class="panel" id="kbSources"><div class="list-row"><div class="row-main"><div class="row-title">读取中…</div></div></div></div>
+            <div class="section-title" style="margin-top:22px">定时任务快照<span class="hint">AUTOMATIONS</span></div>
+            <div class="panel" id="knowledgeAuto"><div class="list-row"><div class="row-main"><div class="row-title">读取中…</div></div></div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 记忆 -->
+      <section class="view" id="view-memory">
+        <div class="page-head"><div><div class="page-title">记忆管理</div><div class="page-desc">本地记忆文件读写 · 云端画像只读</div></div><button class="btn" id="refreshMemory">刷新</button></div>
+        <div class="grid g3">
+          <div class="panel"><div class="mem-layer"><div class="mem-top"><span class="mem-title">云端画像</span><span class="tag off">只读</span></div><div class="mem-path">server managed / local cache</div><div class="mem-desc">服务端生成并注入，本地修改会被覆盖。本页仅作说明，不提供编辑。</div><div class="mem-bar"><i style="width:0;background:var(--faint)"></i></div></div></div>
+          <div class="panel"><div class="mem-layer"><div class="mem-top"><span class="mem-title">用户级记忆</span><span class="tag ok">可读写</span></div><div class="mem-path" id="userMemPath">MEMORY.md</div><div class="mem-desc">跨项目长期规则，可在下方条目中点击编辑。</div><div class="mem-bar"><i style="width:64%"></i></div></div></div>
+          <div class="panel"><div class="mem-layer"><div class="mem-top"><span class="mem-title">工作区记忆</span><span class="tag ok">可读写</span></div><div class="mem-path">workspace/.workbuddy/memory/</div><div class="mem-desc">当前项目日志与长期笔记，支持编辑。</div><div class="mem-bar"><i style="width:38%"></i></div></div></div>
+        </div>
+        <div class="panel" style="margin-top:14px"><div class="panel-head"><span class="t">记忆文件</span><span class="s" id="memoryCount">0 FILES</span></div><div id="memoryList"><div class="list-row">读取中…</div></div></div>
+      </section>
+
+      <!-- 主题 -->
+      <section class="view" id="view-theme">
+        <div class="page-head"><div><div class="page-title">主题</div><div class="page-desc">预设主题 · 自定义配色与品牌 · 同步 WorkBuddy 外观</div></div><button class="btn" id="resetTheme">恢复默认</button></div>
+        <div class="notice"><b>即时生效</b> · 所有改动自动保存到本机浏览器，仅影响本工作台外观，不改变 WorkBuddy 自身主题。</div>
+
+        <div class="section-title">内置预设<span class="hint">PRESETS</span></div>
+        <div class="grid g4" id="presetGrid" style="margin-bottom:22px"></div>
+
+        <div class="section-title">自定义配色<span class="hint">COLORS / SLIDERS</span></div>
+        <div class="panel" style="padding:6px 18px;margin-bottom:22px">
+          <div class="theme-row"><div class="theme-row-label">强调色<small>ACCENT</small></div><div class="theme-row-ctrl"><input type="color" id="cAccent"><span class="theme-hex" id="hAccent"></span></div></div>
+          <div class="theme-row"><div class="theme-row-label">背景色<small>BACKGROUND</small></div><div class="theme-row-ctrl"><input type="color" id="cBg"><span class="theme-hex" id="hBg"></span></div></div>
+          <div class="theme-row"><div class="theme-row-label">侧栏色<small>SIDEBAR</small></div><div class="theme-row-ctrl"><input type="color" id="cSidebar"><span class="theme-hex" id="hSidebar"></span></div></div>
+          <div class="theme-row"><div class="theme-row-label">卡片色<small>SURFACE</small></div><div class="theme-row-ctrl"><input type="color" id="cSurface"><span class="theme-hex" id="hSurface"></span></div></div>
+          <div class="theme-row"><div class="theme-row-label">文字色<small>TEXT</small></div><div class="theme-row-ctrl"><input type="color" id="cText"><span class="theme-hex" id="hText"></span></div></div>
+          <div class="theme-row"><div class="theme-row-label">边框色<small>BORDER</small></div><div class="theme-row-ctrl"><input type="color" id="cBorder"><span class="theme-hex" id="hBorder"></span></div></div>
+          <div class="theme-row"><div class="theme-row-label">圆角<small>RADIUS</small></div><div class="theme-row-ctrl"><input type="range" id="cRadius" min="0" max="20" step="1"><span class="range-val" id="vRadius"></span></div></div>
+          <div class="theme-row"><div class="theme-row-label">字号<small>FONT SIZE</small></div><div class="theme-row-ctrl"><input type="range" id="cFont" min="11" max="16" step="1"><span class="range-val" id="vFont"></span></div></div>
+        </div>
+
+        <div class="section-title">品牌自定义<span class="hint">BRANDING</span></div>
+        <div class="panel" style="padding:6px 18px;margin-bottom:22px">
+          <div class="theme-row"><div class="theme-row-label">头像<small>点击左侧图标上传图片</small></div><div class="theme-row-ctrl"><button class="btn" id="pickAvatar">选择图片</button><button class="btn" id="clearAvatar">使用文字</button><input class="field" id="avatarText" placeholder="头像文字（如 WB）" style="max-width:220px"></div></div>
+          <div class="theme-row"><div class="theme-row-label">标题<small>NAME</small></div><div class="theme-row-ctrl"><input class="field" id="brandNameInput" placeholder="CONSOLE" style="max-width:320px"></div></div>
+          <div class="theme-row"><div class="theme-row-label">副标题<small>SUBTITLE</small></div><div class="theme-row-ctrl"><input class="field" id="brandSubInput" placeholder="LOCAL WORKSPACE / PROTOTYPE" style="max-width:420px"></div></div>
+        </div>
+
+        <div class="section-title">从 WorkBuddy 同步<span class="hint">IMPORT SKIN</span></div>
+        <div class="panel" style="padding:6px 18px">
+          <div class="notice" style="margin:12px 0;color:var(--muted)">读取本机 WorkBuddy 已下载的皮肤（skin.css），提取背景、文字与强调色生成工作台主题。仅提取配色，不改变 WorkBuddy 外观。</div>
+          <div id="wbThemeList"><div class="list-row"><div class="row-main"><div class="row-title">点击"读取主题"加载</div></div></div></div>
+          <div style="padding:12px 0"><button class="btn primary" id="loadWbThemes">读取主题</button></div>
+        </div>
+      </section>
+
+      <!-- 个人资料 -->
+      <section class="view" id="view-profile">
+        <div class="page-head"><div><div class="page-title">个人资料</div><div class="page-desc">对应 USER.md / IDENTITY.md / SOUL.md</div></div><button class="btn primary" id="saveProfile">保存更改</button></div>
+        <div class="grid g2">
+          <div class="panel" style="padding:0 18px">
+            <div class="form-row"><div class="form-label">USER.md<small>用户身份与偏好</small></div><textarea class="field" data-file="USER.md" placeholder="文件内容"></textarea></div>
+            <div class="form-row"><div class="form-label">IDENTITY.md<small>助手身份记录</small></div><textarea class="field" data-file="IDENTITY.md" placeholder="文件内容"></textarea></div>
+            <div class="form-row"><div class="form-label">SOUL.md<small>人格、边界与风格</small></div><textarea class="field" data-file="SOUL.md" placeholder="文件内容"></textarea></div>
+            <div class="foot-actions"><button class="btn" id="reloadProfile">重新读取</button><button class="btn primary" id="saveProfile2">保存更改</button></div>
+          </div>
+          <div>
+            <div class="section-title">文件映射<span class="hint">FILE BINDING</span></div>
+            <div class="panel" id="profileBinding"><div class="list-row"><div class="row-main"><div class="row-title">读取中…</div></div></div></div>
+            <div class="section-title" style="margin-top:22px">说明<span class="hint">NOTE</span></div>
+            <div class="card"><div class="note" style="margin-top:0">个人资料文件为本地 Markdown，可直接编辑保存。若修改 SOUL.md，请在对话中告知我，以便同步人格设定。</div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 通知中心 -->
+      <section class="view" id="view-notifications">
+        <div class="page-head">
+          <div><div class="page-title">通知中心</div><div class="page-desc">每日待办与到期提醒 · 自动刷新</div></div>
+          <div style="display:flex;align-items:center;gap:8px"><span class="refresh-info" id="lastRefresh">上次刷新 —</span><button class="btn" id="autoToggle">自动刷新：开</button><button class="btn primary" id="refreshNotify">立即刷新</button></div>
+        </div>
+        <div class="notice"><b>数据来源</b> · 定时任务读取自本地 automations.json 快照（需由对话桥接写入）；回收站到期提醒基于保留期限实时计算。</div>
+        <div class="grid g4" style="margin-bottom:22px">
+          <div class="card"><div class="stat-label">今日待执行</div><div class="stat-value" id="statTasks">0</div><div class="stat-foot">定时任务快照</div></div>
+          <div class="card"><div class="stat-label">即将到期</div><div class="stat-value" id="statExpiring">0</div><div class="stat-foot">7 天内</div></div>
+          <div class="card"><div class="stat-label">已到期</div><div class="stat-value" id="statExpired">0</div><div class="stat-foot">建议清理或延期</div></div>
+          <div class="card"><div class="stat-label">回收站条目</div><div class="stat-value" id="statTrashNotify">0</div><div class="stat-foot">可恢复或清理</div></div>
+        </div>
+        <div class="grid g2">
+          <div>
+            <div class="section-title">定时任务<span class="hint">SCHEDULED</span></div>
+            <div class="panel" id="taskList"><div class="list-row"><div class="row-main"><div class="row-title">读取中…</div></div></div></div>
+            <div class="note">说明：若需同步真实定时任务，请在对话中让我读取自动化配置并写入快照。</div>
+          </div>
+          <div>
+            <div class="section-title">回收站到期提醒<span class="hint">TRASH / RETENTION</span></div>
+            <div class="panel" id="expiryList"><div class="list-row"><div class="row-main"><div class="row-title">读取中…</div></div></div></div>
+            <div class="note">到期条目不会被自动删除，仅作提醒；清理仍需手动确认。</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 回收站 -->
+      <section class="view" id="view-trash">
+        <div class="page-head"><div><div class="page-title">回收站</div><div class="page-desc" id="trashLocationDesc">软删除内容 · 可恢复或彻底清理</div></div><div style="display:flex;gap:8px"><button class="btn" id="openSettings">回收站设置</button><button class="btn danger" id="emptyTrash">清空回收站</button></div></div>
+        <div class="notice"><b>软删除机制</b> · 删除项移入自定义回收站目录并记录原路径；恢复遇同名会弹窗询问，清理为永久删除且不调用系统回收站。地址与保留期限可在设置中修改。</div>
+        <div class="panel"><div class="panel-head"><span class="t">已删除条目</span><span class="s" id="trashCount">0 ITEMS</span></div><div id="trashList"><div class="list-row"><div class="row-main"><div class="row-title">读取中…</div></div></div></div></div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal-mask" id="modalMask">
+  <div class="modal">
+    <div class="modal-title" id="modalTitle">确认操作</div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-target" id="modalTarget"></div>
+    <div class="modal-actions"><button class="btn" id="modalCancel">取消</button><button class="btn primary" id="modalOk">确认</button></div>
+  </div>
+</div>
+
+<div class="modal-mask" id="editMask">
+  <div class="modal" style="width:560px">
+    <div class="modal-title" id="editTitle">编辑文件</div>
+    <div class="modal-body" id="editPathLine"></div>
+    <textarea class="field" id="editContent" style="height:300px;margin-top:12px;font-family:var(--mono)"></textarea>
+    <div class="modal-actions"><button class="btn" id="editCancel">取消</button><button class="btn primary" id="editSave">保存</button></div>
+  </div>
+</div>
+
+<div class="modal-mask" id="browseMask">
+  <div class="modal" style="width:680px">
+    <div class="modal-title" id="browseTitle">项目内容</div>
+    <div class="modal-body" id="browsePath" style="font-family:var(--mono);font-size:10px"></div>
+    <div class="panel" style="margin-top:12px;max-height:420px;overflow:auto"><table>
+      <thead><tr><th>名称</th><th style="width:16%">类型</th><th style="width:16%">大小</th><th style="width:22%">操作</th></tr></thead>
+      <tbody id="browseRows"><tr><td colspan="4">读取中…</td></tr></tbody>
+    </table></div>
+    <div class="modal-actions"><button class="btn" id="browseClose">关闭</button></div>
+  </div>
+</div>
+
+<div class="modal-mask" id="skillMask">
+  <div class="modal" style="width:720px">
+    <div class="modal-title" id="skillDetailTitle">技能详情</div>
+    <div class="modal-body" id="skillDetailMeta" style="font-size:11px;color:var(--faint)"></div>
+    <div class="skill-detail-body" id="skillDetailBody">读取中…</div>
+    <div class="skill-related" id="skillRelated"></div>
+    <div class="modal-actions"><button class="btn" id="skillDetailClose">关闭</button></div>
+  </div>
+</div>
+
+<div class="modal-mask" id="settingsMask">
+  <div class="modal" style="width:460px">
+    <div class="modal-title">回收站设置</div>
+    <div class="setting-row">
+      <div class="setting-label">回收站地址<small>TRASH LOCATION · 软删除内容存放目录</small></div>
+      <div class="setting-input"><input class="field" id="trashPathInput" placeholder="输入已存在的目录绝对路径"><button class="btn" id="pickFolder">刷新状态</button></div>
+      <div class="setting-status bad" id="settingStatus">当前状态：未指定回收站地址</div>
+    </div>
+    <div class="setting-row">
+      <div class="setting-label">保留期限<small>RETENTION · 仅用于到期提醒，不自动删除</small></div>
+      <select class="field" id="retentionSelect"><option value="7">7 天</option><option value="30" selected>30 天</option><option value="90">90 天</option><option value="180">180 天</option><option value="never">永久保留</option></select>
+    </div>
+    <div class="modal-actions"><button class="btn" id="closeSettings">取消</button><button class="btn primary" id="saveSettings">保存设置</button></div>
+  </div>
+</div>
+
+<div class="modal-mask" id="locationMask">
+  <div class="modal">
+    <div class="modal-title" id="locationTitle">选择回收站位置</div>
+    <div class="modal-body" id="locationBody"></div>
+    <input class="field" id="locationInput" placeholder="输入已存在的目录绝对路径" style="margin-top:12px">
+    <div class="modal-actions"><button class="btn" id="locationCancel">取消</button><button class="btn primary" id="locationOk">确认位置</button></div>
+  </div>
+</div>
+
+<div class="modal-mask" id="conflictMask">
+  <div class="modal">
+    <div class="modal-title">恢复时遇到同名冲突</div>
+    <div class="modal-body">原位置已存在同名条目。请选择处理方式：</div>
+    <div class="conflict-name" id="conflictName"></div>
+    <div class="modal-actions"><button class="btn" id="conflictCancel">取消</button><button class="btn" id="conflictKeep">保留两者（重命名）</button><button class="btn danger" id="conflictOverwrite">覆盖原文件（原文件转入回收站）</button></div>
+  </div>
+</div>
+
+<script>
+var state = null;
+var pendingAction = null;
+var autoRefresh = true;
+var locationResolve = null;
+var conflictResolve = null;
+var editPath = null;
+var checkedConflict = {};
+var searchTimer = null;
+var searchResults = [];
+var searchFocus = -1;
+var searchSeq = 0;
+var kbQuery = '';
+
+var labels = {dashboard:'工作台概览',notifications:'通知中心',tools:'连接器状态',skills:'Skill 管理',files:'文件管理',projects:'项目管理',trash:'回收站',knowledge:'知识库管理',memory:'记忆管理',theme:'主题',profile:'个人资料'};
+var modalMask = document.getElementById('modalMask');
+var settingsMask = document.getElementById('settingsMask');
+var locationMask = document.getElementById('locationMask');
+var conflictMask = document.getElementById('conflictMask');
+var editMask = document.getElementById('editMask');
+var browseMask = document.getElementById('browseMask');
+
+function fmtTime(){return new Date().toTimeString().slice(0,8)}
+function toast(msg){var el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');setTimeout(function(){el.classList.remove('show')},2600)}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function go(v){
+  document.querySelectorAll('.view').forEach(function(el){el.classList.toggle('active',el.id==='view-'+v)});
+  document.querySelectorAll('.nav-item').forEach(function(el){el.classList.toggle('active',el.dataset.view===v)});
+  document.getElementById('crumb').textContent=labels[v]||'';
+  window.scrollTo(0,0);
+  if(v==='trash'&&state&&!state.config.trash_valid){setTimeout(function(){ensureLocation(function(){})},120)}
+}
+document.querySelectorAll('.nav-item').forEach(function(el){el.addEventListener('click',function(){go(el.dataset.view)})});
+document.querySelectorAll('[data-go]').forEach(function(el){el.addEventListener('click',function(){go(el.dataset.go)})});
+
+function api(path, body, cb){
+  var opt = {method: body ? 'POST' : 'GET', headers:{'Content-Type':'application/json'}};
+  if(body) opt.body = JSON.stringify(body);
+  fetch(path, opt).then(function(r){return r.json()}).then(function(d){
+    if(d && d.ok === false){toast(d.error||'操作失败');if(cb)cb(d);return}
+    if(cb)cb(d);
+  }).catch(function(e){toast('请求失败：'+e.message);if(cb)cb(null)});
+}
+function updateServiceStatus(ok,d){
+  var dot=document.getElementById('serviceDot');
+  var text=document.getElementById('serviceText');
+  var meta=document.getElementById('serviceMeta');
+  var tag=document.getElementById('tagService');
+  if(ok){
+    dot.className='dot';
+    text.textContent='本地服务 已启动';
+    meta.textContent='实时数据 · 更新于 '+(d&&d.generated_at?d.generated_at:fmtTime());
+    if(tag){tag.textContent='运行中';tag.className='tag ok'}
+  }else{
+    dot.className='dot dead';
+    text.textContent='本地服务 未连接';
+    meta.textContent='请运行 启动工作台.bat';
+    if(tag){tag.textContent='未连接';tag.className='tag warn'}
+  }
+}
+function loadState(cb){
+  api('/api/state', null, function(d){
+    if(!d){updateServiceStatus(false);return}
+    state = d;
+    updateServiceStatus(true,d);
+    renderAll();
+    if(cb)cb(d);
+  });
+}
+function closeSearch(){
+  var box=document.getElementById('searchResults');
+  if(box){box.classList.remove('show');box.innerHTML=''}
+  searchFocus=-1;
+}
+function baseName(p){
+  var parts=String(p||'').split(/[\\/]/).filter(function(x){return x});
+  return parts.length?parts[parts.length-1]:String(p||'');
+}
+function renderSearchResults(){
+  var box=document.getElementById('searchResults');
+  if(!searchResults.length){
+    box.innerHTML='<div class="search-empty">未找到匹配项。可尝试项目名、文件名、技能名、记忆关键词。</div>';
+    box.classList.add('show');
+    return;
+  }
+  box.innerHTML=searchResults.map(function(r,i){
+    var snippet=r.snippet?'<div class="sr-snippet">'+esc(r.snippet)+'</div>':'';
+    return '<div class="search-result'+(i===searchFocus?' focus':'')+'" data-sr-index="'+i+'">'+
+      '<span class="sr-tag">'+esc(r.type_label)+'</span>'+
+      '<div class="sr-main"><div class="sr-title">'+esc(r.title)+'</div>'+
+      '<div class="sr-sub">'+esc(r.subtitle)+'</div>'+snippet+'</div></div>';
+  }).join('');
+  box.classList.add('show');
+}
+function runGlobalSearch(value){
+  var seq=++searchSeq;
+  fetch('/api/search?q='+encodeURIComponent(value)).then(function(r){return r.json()}).then(function(d){
+    if(seq!==searchSeq)return;
+    searchResults=(d&&d.results)||[];
+    searchFocus=-1;
+    renderSearchResults();
+  }).catch(function(){if(seq!==searchSeq)return;searchResults=[];renderSearchResults()});
+}
+function openSearchResult(r){
+  if(!r)return;
+  closeSearch();
+  var input=document.getElementById('globalSearch');
+  if(input)input.value='';
+  go(r.view||'dashboard');
+  setTimeout(function(){
+    if(r.action==='skill'){
+      if(r.group)openSkillGroup(r.group);
+      if(r.name)openSkillDetail(r.name,r.level||'用户级');
+    }else if(r.action==='file'||r.action==='project'){
+      var dir=r.action==='project'?r.path:r.directory;
+      if(dir)openFileDir(dir,baseName(dir));
+    }else if(r.action==='knowledge'){
+      openKnowledgeDoc(r.path);
+    }else if(r.action==='memory'||r.action==='profile'){
+      var p=r.action==='profile'?('__PROFILE__'+r.path):r.path;
+      api('/api/read-file',{path:p},function(d){
+        if(d&&d.ok!==false)openEditor(p,r.title,d.content||'');
+      });
+    }
+  },80);
+}
+function bindGlobalSearch(){
+  var input=document.getElementById('globalSearch');
+  var wrap=document.getElementById('globalSearchWrap');
+  var box=document.getElementById('searchResults');
+  input.addEventListener('input',function(){
+    var value=this.value.trim();
+    clearTimeout(searchTimer);
+    if(!value){searchSeq++;closeSearch();return}
+    var self=this;
+    searchTimer=setTimeout(function(){runGlobalSearch(self.value.trim())},180);
+  });
+  input.addEventListener('focus',function(){
+    if(searchResults.length&&this.value.trim())box.classList.add('show');
+  });
+  input.addEventListener('keydown',function(e){
+    if(e.key==='Escape'){closeSearch();this.blur();return}
+    if(e.key==='ArrowDown'||e.key==='ArrowUp'){
+      if(!searchResults.length)return;
+      e.preventDefault();
+      searchFocus=(searchFocus+(e.key==='ArrowDown'?1:-1)+searchResults.length)%searchResults.length;
+      renderSearchResults();
+    }else if(e.key==='Enter'){
+      e.preventDefault();
+      var picked=searchFocus>=0?searchResults[searchFocus]:searchResults[0];
+      if(picked)openSearchResult(picked);
+    }
+  });
+  box.addEventListener('click',function(e){
+    var el=e.target.closest('[data-sr-index]');
+    if(el)openSearchResult(searchResults[Number(el.dataset.srIndex)]);
+  });
+  document.addEventListener('click',function(e){
+    if(wrap&&!wrap.contains(e.target))closeSearch();
+  });
+}
+function showModal(title,body,target,action,danger){
+  document.getElementById('modalTitle').textContent=title;
+  document.getElementById('modalBody').textContent=body;
+  var t=document.getElementById('modalTarget');
+  if(target){t.textContent=target;t.style.display='block'}else{t.style.display='none'}
+  var ok=document.getElementById('modalOk');
+  ok.className='btn '+(danger?'danger':'primary');
+  pendingAction=action;
+  modalMask.classList.add('show');
+}
+function closeModal(){modalMask.classList.remove('show');pendingAction=null}
+document.getElementById('modalCancel').addEventListener('click',closeModal);
+modalMask.addEventListener('click',function(e){if(e.target===modalMask)closeModal()});
+document.getElementById('modalOk').addEventListener('click',function(){if(pendingAction)pendingAction();closeModal()});
+
+function askLocation(reason,onOk){
+  document.getElementById('locationBody').textContent=reason;
+  document.getElementById('locationInput').value=(state&&state.config.trash_path)||'';
+  locationResolve=onOk;locationMask.classList.add('show');
+}
+function ensureLocation(action){
+  if(!state)return;
+  if(!state.config.trash_path){askLocation('尚未指定回收站地址。请输入一个已存在的目录绝对路径。',function(p){saveConfigValue(p,state.config.retention,action)});return}
+  if(!state.config.trash_valid){askLocation('指定回收站目录不存在或已被删除，请重新指定位置。',function(p){saveConfigValue(p,state.config.retention,action)});return}
+  action();
+}
+function saveConfigValue(path,retention,cb){
+  api('/api/config',{trash_path:path,retention:retention},function(d){
+    if(d){toast('回收站地址已设置');loadState(function(){if(cb)cb()})}
+  });
+}
+document.getElementById('locationCancel').addEventListener('click',function(){locationMask.classList.remove('show');locationResolve=null});
+locationMask.addEventListener('click',function(e){if(e.target===locationMask){locationMask.classList.remove('show');locationResolve=null}});
+document.getElementById('locationOk').addEventListener('click',function(){
+  var v=document.getElementById('locationInput').value.trim();
+  if(!v){toast('请输入目录路径');return}
+  locationMask.classList.remove('show');var cb=locationResolve;locationResolve=null;if(cb)cb(v);
+});
+
+document.getElementById('openSettings').addEventListener('click',function(){
+  if(!state)return;
+  document.getElementById('trashPathInput').value=state.config.trash_path;
+  document.getElementById('retentionSelect').value=state.config.retention;
+  refreshStatusText();settingsMask.classList.add('show');
+});
+function refreshStatusText(){
+  var el=document.getElementById('settingStatus');
+  var c=state.config;
+  if(!c.trash_path){el.textContent='当前状态：未指定回收站地址';el.className='setting-status bad'}
+  else if(!c.trash_valid){el.textContent='当前状态：指定目录不存在或已被删除';el.className='setting-status bad'}
+  else{el.textContent='当前状态：有效 · 保留期限 '+c.retention;el.className='setting-status'}
+}
+document.getElementById('closeSettings').addEventListener('click',function(){settingsMask.classList.remove('show')});
+settingsMask.addEventListener('click',function(e){if(e.target===settingsMask)settingsMask.classList.remove('show')});
+document.getElementById('pickFolder').addEventListener('click',function(){
+  api('/api/check-path',{path:document.getElementById('trashPathInput').value.trim()},function(d){
+    toast(d&&d.exists?'目录存在':'目录不存在，请先创建');
+  });
+});
+document.getElementById('saveSettings').addEventListener('click',function(){
+  var p=document.getElementById('trashPathInput').value.trim();
+  var r=document.getElementById('retentionSelect').value;
+  api('/api/config',{trash_path:p,retention:r},function(d){
+    if(d){settingsMask.classList.remove('show');toast('设置已保存');loadState()}
+  });
+});
+
+function openEditor(path,name,content){
+  editPath=path;
+  document.getElementById('editTitle').textContent='编辑：'+name;
+  document.getElementById('editPathLine').textContent=path;
+  document.getElementById('editContent').value=content||'';
+  editMask.classList.add('show');
+}
+document.getElementById('editCancel').addEventListener('click',function(){editMask.classList.remove('show');editPath=null});
+editMask.addEventListener('click',function(e){if(e.target===editMask){editMask.classList.remove('show');editPath=null}});
+function saveEditor(){
+  if(!editPath)return;
+  api('/api/save-file',{path:editPath,content:document.getElementById('editContent').value},function(d){
+    if(d){editMask.classList.remove('show');editPath=null;toast('已保存');loadState()}
+  });
+}
+document.getElementById('editSave').addEventListener('click',saveEditor);
+
+function doDelete(path,name,kind){
+  ensureLocation(function(){
+    showModal('确认删除','删除为软删除：条目先移入回收站，可随时恢复。',name,function(){
+      api('/api/delete',{path:path,kind:kind},function(d){
+        if(d){toast('已移入回收站：'+name);loadState()}
+      });
+    },true);
+  });
+}
+function doPurge(id,name){
+  ensureLocation(function(){
+    showModal('彻底清理','此操作将从磁盘永久删除该条目，不调用系统回收站，不可恢复。',name,function(){
+      api('/api/purge',{id:id},function(d){if(d){toast('已彻底清理：'+name);loadState()}});
+    },true);
+  });
+}
+function doRestore(id,name){
+  api('/api/check-restore',{id:id},function(d){
+    if(!d)return;
+    if(d.conflict){
+      document.getElementById('conflictName').textContent=name;
+      conflictMask.classList.add('show');
+      conflictResolve=function(mode){
+        conflictMask.classList.remove('show');
+        api('/api/restore',{id:id,mode:mode},function(r){if(r){toast('已恢复');loadState()}});
+      };
+    }else{
+      api('/api/restore',{id:id,mode:'rename'},function(r){if(r){toast('已恢复：'+name);loadState()}});
+    }
+  });
+}
+document.getElementById('conflictCancel').addEventListener('click',function(){conflictMask.classList.remove('show');conflictResolve=null});
+document.getElementById('conflictKeep').addEventListener('click',function(){if(conflictResolve)conflictResolve('rename')});
+document.getElementById('conflictOverwrite').addEventListener('click',function(){if(conflictResolve)conflictResolve('overwrite')});
+
+function renderDashboard(){
+  if(!state)return;
+  document.getElementById('workspacePath').textContent='工作区：'+state.workspace;
+  var env=state.environment||{};
+  var wbEl=document.getElementById('statusWorkbuddy');
+  var wbTag=document.getElementById('tagWorkbuddy');
+  if(wbEl&&wbTag){
+    var ok=!!(env.workbuddy_detected&&env.personal_found);
+    wbEl.textContent=ok?('已检测到 · Python '+env.python):'未检测到本机 WorkBuddy 数据';
+    wbTag.textContent=ok?'就绪':'部分功能不可用';
+    wbTag.className='tag '+(ok?'ok':'warn');
+  }
+  document.getElementById('statSkills').textContent=state.skills.length;
+  document.getElementById('footSkills').innerHTML='<em>'+state.skills.filter(function(s){return s.level==='用户级'}).length+'</em> 用户级 · '+state.skills.filter(function(s){return s.level==='项目级'}).length+' 项目级';
+  document.getElementById('statProjects').textContent=state.projects.length;
+  document.getElementById('statTrash').textContent=state.trash.length;
+  document.getElementById('footTrash').innerHTML='回收站 '+(state.config.trash_valid?'有效':'未设置');
+  var exp=state.trash.filter(function(t){return t.status==='warn'||t.status==='expired'}).length;
+  document.getElementById('statAlerts').textContent=state.automations.length+exp;
+  document.getElementById('statusTrash').textContent=state.config.trash_path||'未设置';
+  var tag=document.getElementById('tagTrash');
+  tag.textContent=state.config.trash_valid?'有效':'需设置';
+  tag.className='tag '+(state.config.trash_valid?'ok':'warn');
+  var conns=(state.connectors&&state.connectors.connectors)||[];
+  var cc=conns.filter(function(x){return x.status==='connected'}).length;
+  document.getElementById('statusConnector').textContent='会话快照 · '+(state.connectors&&state.connectors.synced_at||'—');
+  var ctag=document.getElementById('tagConnector');
+  ctag.textContent=cc+' 已连接';
+  ctag.className='tag '+(cc>0?'ok':'warn');
+  document.getElementById('lastSync').textContent='最近读取 '+state.generated_at;
+}
+var skillGroupOrder=['blender','marketplace','project','other'];
+var currentSkillGroup=null;
+function renderSkills(){
+  var groups={};
+  state.skills.forEach(function(s){
+    var k=s.group||'other';
+    if(!groups[k])groups[k]={key:k,label:s.group_label||'其他技能',desc:s.group_desc||'',items:[]};
+    groups[k].items.push(s);
+  });
+  var keys=skillGroupOrder.filter(function(k){return groups[k]});
+  Object.keys(groups).forEach(function(k){if(keys.indexOf(k)<0)keys.push(k)});
+  var host=document.getElementById('skillGroups');
+  host.innerHTML='<div class="grid g3">'+keys.map(function(k){
+    var g=groups[k];
+    var sample=g.items.slice(0,4).map(function(s){return esc(s.name)}).join(' · ');
+    return '<div class="entry" data-group="'+esc(k)+'"><div class="entry-top"><label class="group-check" title="选择该分组"><input type="checkbox" data-group-check="'+esc(k)+'"></label><div class="entry-icon"><svg><use href="#i-block"/></svg></div><span class="tag ok">'+g.items.length+' 个技能</span></div><div class="entry-name">'+esc(g.label)+'</div><div class="entry-desc">'+esc(g.desc)+'</div><div class="note">'+sample+(g.items.length>4?' …':'')+'</div></div>';
+  }).join('')+'</div>';
+  host.style.display='';
+  document.getElementById('skillGroupView').style.display='none';
+  document.getElementById('deleteGroups').style.display='';
+  document.getElementById('deleteSkills').style.display='none';
+  if(currentSkillGroup&&groups[currentSkillGroup])openSkillGroup(currentSkillGroup);
+}
+function openSkillGroup(key){
+  var items=state.skills.filter(function(s){return (s.group||'other')===key});
+  if(!items.length)return;
+  currentSkillGroup=key;
+  var label=items[0].group_label||'技能';
+  document.getElementById('skillTrailLabel').textContent=label+' · '+items.length+' 个技能';
+  document.getElementById('skillGroups').style.display='none';
+  document.getElementById('skillGroupView').style.display='';
+  document.getElementById('deleteGroups').style.display='none';
+  document.getElementById('deleteSkills').style.display='';
+  document.getElementById('skillCheckAll').checked=false;
+  var q=(document.getElementById('skillSearch').value||'').toLowerCase();
+  var rows=items.filter(function(s){
+    return !q||s.name.toLowerCase().indexOf(q)>=0||(s.description||'').toLowerCase().indexOf(q)>=0||(s.role||'').toLowerCase().indexOf(q)>=0;
+  });
+  document.getElementById('skillRows').innerHTML=rows.map(function(s){
+    return '<tr><td><input type="checkbox" data-skill-check="'+esc(s.name)+'" data-skill-level="'+esc(s.level)+'"></td><td style="font-family:var(--mono);font-size:11px">'+esc(s.name)+'</td><td>'+(s.role?'<span class="tag violet">'+esc(s.role)+'</span>':'—')+'</td><td><span class="tag '+(s.level==='用户级'?'info':'ok')+'">'+esc(s.level)+'</span></td><td>'+esc(s.description||s.title||'')+'</td><td><button class="link-btn" data-skill="'+esc(s.name)+'" data-level="'+esc(s.level)+'">详情 ›</button></td></tr>';
+  }).join('')||'<tr><td colspan="6">无匹配技能</td></tr>';
+}
+function doSkillDelete(list,sourceLabel){
+  if(!list.length){toast('请先勾选要删除的项');return}
+  var nonMarket=list.filter(function(x){return !x.marketplace});
+  var tip='将把选中的 '+list.length+' 个技能目录移入回收站，可恢复。';
+  if(nonMarket.length)tip+='\n注意：非市场 skill 删除后需从原来源安装（回收站彻底清理后将无法恢复）。';
+  ensureLocation(function(){
+    showModal('确认删除技能',tip,sourceLabel,function(){
+      api('/api/skill-delete',{names:list.map(function(x){return x.name}),level:list[0].level},function(d){
+        if(d&&d.removed&&d.removed.length){toast('已移入回收站 '+d.removed.length+' 个技能');loadState()}
+      });
+    },true);
+  });
+}
+function deleteSelectedGroups(){
+  var checks=[].slice.call(document.querySelectorAll('[data-group-check]:checked')).map(function(el){return el.dataset.groupCheck});
+  if(!checks.length){toast('请先勾选要删除的 Skill 分组');return}
+  var list=[];
+  checks.forEach(function(k){
+    state.skills.filter(function(s){return (s.group||'other')===k}).forEach(function(s){list.push(s)});
+  });
+  if(!list.length){toast('所选分组内无技能');return}
+  var labels=checks.map(function(k){
+    var s=state.skills.filter(function(x){return (x.group||'other')===k})[0];
+    return (s?s.group_label:k)+'（'+state.skills.filter(function(x){return (x.group||'other')===k}).length+'）';
+  }).join('、');
+  doSkillDelete(list,labels);
+}
+function deleteSelectedSkills(){
+  var list=[].slice.call(document.querySelectorAll('[data-skill-check]:checked')).map(function(el){
+    var name=el.dataset.skillCheck,level=el.dataset.skillLevel;
+    var s=state.skills.filter(function(x){return x.name===name&&x.level===level})[0]||{name:name,level:level};
+    return s;
+  });
+  if(!list.length){toast('请先勾选要删除的技能');return}
+  doSkillDelete(list,list.map(function(x){return x.name}).slice(0,5).join('、')+(list.length>5?' …':''));
+}
+function openSkillDetail(name,level){
+  var mask=document.getElementById('skillMask');
+  document.getElementById('skillDetailTitle').textContent=name;
+  document.getElementById('skillDetailMeta').textContent='读取中…';
+  document.getElementById('skillDetailBody').textContent='读取中…';
+  document.getElementById('skillRelated').innerHTML='';
+  mask.classList.add('show');
+  api('/api/skill-detail',{name:name,level:level},function(d){
+    if(!d)return;
+    document.getElementById('skillDetailTitle').textContent=d.title||d.name;
+    var m=d.meta||{};
+    var bits=[];
+    if(m.role)bits.push('角色 '+m.role);
+    if(m.domain)bits.push('领域 '+m.domain);
+    if(m.version)bits.push('版本 '+m.version);
+    if(m.author)bits.push('作者 '+m.author);
+    if(Array.isArray(m.triggers)&&m.triggers.length)bits.push('触发词 '+m.triggers.slice(0,8).join(', '));
+    document.getElementById('skillDetailMeta').textContent=bits.join(' · ');
+    document.getElementById('skillDetailBody').textContent=d.content||'（无内容）';
+    var names=state.skills.map(function(s){return s.name});
+    var rel=(m['related-skills']||[]).filter(function(n){return names.indexOf(n)>=0});
+    document.getElementById('skillRelated').innerHTML=rel.length?
+      '<span style="font-size:11px;color:var(--faint);align-self:center">关联技能：</span>'+rel.map(function(n){
+        var t=state.skills.filter(function(s){return s.name===n})[0];
+        return '<button data-skill="'+esc(n)+'" data-level="'+esc(t?t.level:'用户级')+'">'+esc(n)+'</button>';
+      }).join(''):'<span style="font-size:11px;color:var(--faint)">元数据中无有效关联技能</span>';
+  });
+}
+var fileCurrentPath=null;
+function renderFiles(){
+  var grid=document.getElementById('fileProjectGrid');
+  grid.innerHTML=state.projects.map(function(p){
+    var isCurrent = p.path===state.workspace;
+    return '<div class="entry" data-folder="'+esc(p.path)+'" data-fname="'+esc(p.name)+'"><div class="entry-top"><div class="entry-icon"><svg><use href="#i-project"/></svg></div>'+(isCurrent?'<span class="tag info">当前工作区</span>':'<span class="tag ok">'+p.files+' 文件</span>')+'</div><div class="entry-name">'+esc(p.name)+'</div><div class="entry-desc">'+esc(p.path)+'</div><div class="note">文件 '+p.files+' · 更新 '+esc(p.modified)+'</div><div class="entry-actions"><button class="link-btn" data-fenter="'+esc(p.path)+'" data-fname="'+esc(p.name)+'">进入查看 ›</button></div></div>';
+  }).join('') || '<div class="card">未发现项目文件夹</div>';
+  if(fileCurrentPath){
+    document.getElementById('fileProjectList').style.display='none';
+    document.getElementById('fileDetailView').style.display='';
+    openFileDir(fileCurrentPath,fileCurrentPath);
+  }else{
+    document.getElementById('fileProjectList').style.display='';
+    document.getElementById('fileDetailView').style.display='none';
+  }
+}
+function openFileDir(path,label){
+  fileCurrentPath=path;
+  document.getElementById('fileProjectList').style.display='none';
+  document.getElementById('fileDetailView').style.display='';
+  document.getElementById('fileTrailLabel').textContent='项目产出 / '+label;
+  document.getElementById('fileDirLabel').textContent=label;
+  document.getElementById('openFolderPath').textContent=path;
+  document.getElementById('fileRows').innerHTML='<tr><td colspan="5">读取中…</td></tr>';
+  api('/api/browse',{path:path},function(d){
+    if(!d)return;
+    document.getElementById('fileDetailCount').textContent=d.entries.length+' ITEMS';
+    document.getElementById('fileRows').innerHTML=d.entries.map(function(f){
+      var op = f.type==='目录' ? '<button class="link-btn" data-fenter="'+esc(f.path)+'" data-fname="'+esc(f.name)+'">进入</button>' :
+        '<button class="link-btn" data-edit="'+esc(f.path)+'" data-ename="'+esc(f.name)+'">编辑</button>';
+      op += '<button class="link-btn danger" data-del="'+esc(f.path)+'" data-dname="'+esc(f.name)+'" data-kind="'+esc(f.type)+'">删除</button>';
+      return '<tr><td>'+esc(f.name)+'</td><td><span class="tag '+(f.type==='目录'?'ok':'')+'">'+esc(f.type)+'</span></td><td>'+esc(f.size)+'</td><td style="font-family:var(--mono);font-size:10px">'+esc(f.modified)+'</td><td>'+op+'</td></tr>';
+    }).join('') || '<tr><td colspan="5">该目录为空</td></tr>';
+  });
+}
+function openSystemFolder(path){
+  api('/api/open-folder',{path:path},function(d){if(d&&d.ok!==false)toast('已在文件资源管理器中打开')});
+}
+function renderProjects(){
+  var box=document.getElementById('projectGrid');
+  box.innerHTML=state.projects.map(function(p){
+    var isCurrent = p.path===state.workspace;
+    var op = isCurrent ? '<span class="tag info">当前工作区 · 受保护</span>' : '<button class="link-btn danger" data-del="'+esc(p.path)+'" data-dname="'+esc(p.name)+'" data-kind="项目目录">删除</button>';
+    return '<div class="entry" data-browse="'+esc(p.path)+'" data-bname="'+esc(p.name)+'"><div class="entry-top"><div class="entry-icon"><svg><use href="#i-project"/></svg></div>'+(isCurrent?'<span class="tag info">当前</span>':'<span class="tag">项目</span>')+'</div><div class="entry-name">'+esc(p.name)+'</div><div class="entry-desc">文件 '+p.files+' · 更新 '+esc(p.modified)+'</div><div class="entry-actions"><button class="link-btn" data-enter="'+esc(p.path)+'" data-ename="'+esc(p.name)+'">进入查看 ›</button> · '+op+'</div></div>';
+  }).join('') || '<div class="card">未发现项目目录</div>';
+}
+function renderTrash(){
+  document.getElementById('trashLocationDesc').textContent='回收站：'+(state.config.trash_path||'未设置');
+  document.getElementById('trashCount').textContent=state.trash.length+' ITEMS';
+  var box=document.getElementById('trashList');
+  box.innerHTML=state.trash.map(function(t){
+    var cls = t.status==='expired'?'off':(t.status==='warn'?'warn':'ok');
+    return '<div class="list-row"><div class="row-main"><div class="row-title">'+esc(t.name)+'</div><div class="trash-meta">原路径 '+esc(t.path)+' · 删除于 '+esc(t.deleted_at)+' · '+esc(t.kind)+'</div></div><span class="tag '+cls+'">'+esc(t.label)+'</span><button class="link-btn" data-restore="'+esc(t.id)+'" data-rname="'+esc(t.name)+'">恢复</button><button class="link-btn danger" data-purge="'+esc(t.id)+'" data-pname="'+esc(t.name)+'">清理</button></div>';
+  }).join('') || '<div class="list-row"><div class="row-main"><div class="row-title">回收站为空</div></div></div>';
+}
+function renderMemory(){
+  document.getElementById('memoryCount').textContent=state.memory.length+' FILES';
+  var user=state.memory.find(function(m){return m.scope==='用户级'});
+  if(user)document.getElementById('userMemPath').textContent=user.path;
+  document.getElementById('memoryList').innerHTML=state.memory.map(function(m){
+    return '<div class="list-row"><div class="row-main"><div class="row-title">'+esc(m.name)+'</div><div class="row-sub">'+esc(m.scope)+' · '+esc(m.path)+'</div></div><button class="link-btn" data-edit="'+esc(m.path)+'" data-ename="'+esc(m.name)+'">编辑</button></div>';
+  }).join('') || '<div class="list-row">未发现记忆文件</div>';
+}
+function renderProfile(){
+  state.profile.forEach(function(p){
+    var el=document.querySelector('textarea[data-file="'+p.name+'"]');
+    if(el&&el.value!==p.content)el.value=p.content;
+  });
+  document.getElementById('profileBinding').innerHTML=state.profile.map(function(p){
+    return '<div class="list-row"><div class="row-main"><div class="row-title">'+esc(p.name)+'</div><div class="row-sub">'+esc(p.path)+'</div></div><span class="tag '+(p.exists?'ok':'off')+'">'+(p.exists?'存在':'缺失')+'</span></div>';
+  }).join('');
+}
+function openBrowse(path,name){
+  document.getElementById('browseTitle').textContent='项目内容：'+name;
+  document.getElementById('browsePath').textContent=path;
+  document.getElementById('browseRows').innerHTML='<tr><td colspan="4">读取中…</td></tr>';
+  browseMask.classList.add('show');
+  api('/api/browse',{path:path},function(d){
+    if(!d)return;
+    document.getElementById('browseRows').innerHTML=d.entries.map(function(f){
+      var op = f.type==='目录' ? '<button class="link-btn" data-enter="'+esc(f.path)+'" data-ename="'+esc(f.name)+'">进入</button>' :
+        '<button class="link-btn" data-edit="'+esc(f.path)+'" data-ename="'+esc(f.name)+'">编辑</button>';
+      op += '<button class="link-btn danger" data-del="'+esc(f.path)+'" data-dname="'+esc(f.name)+'" data-kind="'+esc(f.type)+'">删除</button>';
+      return '<tr><td>'+esc(f.name)+'</td><td><span class="tag '+(f.type==='目录'?'ok':'')+'">'+esc(f.type)+'</span></td><td>'+esc(f.size)+'</td><td>'+op+'</td></tr>';
+    }).join('') || '<tr><td colspan="4">该目录为空</td></tr>';
+  });
+}
+function renderConnectors(){
+  var c=state.connectors||{connectors:[],builtin:[]};
+  var list=c.connectors||[];
+  var connected=list.filter(function(x){return x.status==='connected'}).length;
+  var disabled=list.filter(function(x){return x.status==='disabled'||!x.enabled}).length;
+  document.getElementById('connConnected').textContent=connected;
+  document.getElementById('connDisabled').textContent=disabled;
+  document.getElementById('connBuiltin').textContent=(c.builtin||[]).length;
+  document.getElementById('connSyncedAt').textContent=c.synced_at||'—';
+  document.getElementById('connectorBadge').textContent=connected;
+  document.getElementById('connectorRows').innerHTML=list.map(function(x){
+    var tag = x.status==='connected' ? '<span class="tag ok">已连接</span>' :
+              (x.status==='disabled' ? '<span class="tag off">已停用</span>' : '<span class="tag warn">'+esc(x.status||'未知')+'</span>');
+    return '<tr><td>'+esc(x.name)+'<div class="row-sub">'+esc(x.desc||'')+'</div></td><td>'+tag+'</td><td>'+(x.enabled?'<span class="tag ok">启用</span>':'<span class="tag off">停用</span>')+'</td><td>'+(x.bound?'<span class="tag info">已绑定</span>':'<span class="tag warn">未绑定</span>')+'</td><td style="font-family:var(--mono);font-size:10px;color:var(--faint)">'+esc(x.plugin_id||'')+'</td></tr>';
+  }).join('') || '<tr><td colspan="5">暂无连接器快照，请在对话中同步</td></tr>';
+  document.getElementById('builtinRows').innerHTML=(c.builtin||[]).map(function(x){
+    return '<div class="list-row"><div class="row-main"><div class="row-title">'+esc(x.name)+'</div><div class="row-sub">'+esc(x.desc||'')+'</div></div><span class="tag ok">内置</span></div>';
+  }).join('') || '<div class="list-row"><div class="row-main"><div class="row-title">无内置能力记录</div></div></div>';
+  document.getElementById('connectorNote').innerHTML='说明：连接器授权状态由 WorkBuddy 会话层管理，本页展示的是对话桥接写入的快照，非实时读取（快照时间 <span style="font-family:var(--mono)">'+esc(c.synced_at||'—')+'</span>）。连接、断开或启用操作需在 WorkBuddy 界面的连接器管理入口完成；刷新本页不会改变授权状态。如需更新快照，请在对话中让我重新同步。';
+}
+
+/* ---------- theme engine ---------- */
+var THEME_KEY='wb_console_theme';
+var THEME_PRESETS=[
+  {id:'dark',name:'深空黑',desc:'默认 · 深色简约科技风',accent:'#22d3ee',bg:'#0a0e14',sidebar:'#0e141c',surface:'#121924',text:'#e4edf5',border:'#22303f',radius:10,font:13},
+  {id:'light',name:'云昼白',desc:'浅色 · 明亮清爽',accent:'#2563eb',bg:'#f4f6fa',sidebar:'#ffffff',surface:'#ffffff',text:'#1e293b',border:'#d8dee9',radius:10,font:13},
+  {id:'techblue',name:'科技蓝',desc:'深蓝 · 冷色高对比',accent:'#38bdf8',bg:'#071426',sidebar:'#0b1e36',surface:'#102842',text:'#dceeff',border:'#1e3a5f',radius:8,font:13},
+  {id:'forest',name:'森林绿',desc:'墨绿 · 沉稳自然',accent:'#34d399',bg:'#0a1512',sidebar:'#0e1d19',surface:'#132520',text:'#dcf5ea',border:'#1f3d33',radius:12,font:13},
+  {id:'dusk',name:'暮光紫',desc:'暗紫 · 柔和神秘',accent:'#a78bfa',bg:'#120e1c',sidebar:'#181227',surface:'#1e1830',text:'#ece5ff',border:'#332752',radius:12,font:13},
+  {id:'sand',name:'暖沙白',desc:'浅暖 · 柔和护眼',accent:'#c2853b',bg:'#f6f1e8',sidebar:'#fffaf0',surface:'#fffdf8',text:'#3d3226',border:'#ded2bd',radius:14,font:13}
+];
+var themeState=null;
+
+function hex2rgb(h){
+  h=String(h||'').replace('#','');
+  if(h.length===3)h=h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
+  var n=parseInt(h,16);
+  if(isNaN(n)||h.length<6)return {r:0,g:0,b:0};
+  return {r:(n>>16)&255,g:(n>>8)&255,b:n&255};
+}
+function rgb2hex(r,g,b){
+  var f=function(x){x=Math.max(0,Math.min(255,Math.round(x)));return x.toString(16).padStart(2,'0')};
+  return '#'+f(r)+f(g)+f(b);
+}
+function mix(a,b,t){
+  var x=hex2rgb(a),y=hex2rgb(b);
+  return rgb2hex(x.r+(y.r-x.r)*t,x.g+(y.g-x.g)*t,x.b+(y.b-x.b)*t);
+}
+function rgba(h,a){var c=hex2rgb(h);return 'rgba('+c.r+','+c.g+','+c.b+','+a+')'}
+
+function defaultTheme(){
+  var p=THEME_PRESETS[0];
+  return {accent:p.accent,bg:p.bg,sidebar:p.sidebar,surface:p.surface,text:p.text,border:p.border,
+          radius:p.radius,font:p.font,preset:'dark',
+          brand:{avatar:'',avatarText:'WB',name:'CONSOLE',sub:'LOCAL WORKSPACE / PROTOTYPE'}};
+}
+function loadTheme(){
+  try{
+    var raw=localStorage.getItem(THEME_KEY);
+    if(!raw)return defaultTheme();
+    var d=JSON.parse(raw),def=defaultTheme();
+    for(var k in def)if(!(k in d))d[k]=def[k];
+    for(var b in def.brand)if(!(b in (d.brand||{}))){d.brand=d.brand||{};d.brand[b]=def.brand[b]}
+    return d;
+  }catch(e){return defaultTheme()}
+}
+function saveTheme(){try{localStorage.setItem(THEME_KEY,JSON.stringify(themeState))}catch(e){toast('主题保存失败：'+e.message)}}
+function applyTheme(){
+  var t=themeState,root=document.documentElement.style;
+  var muted=mix(t.text,t.bg,.40),faint=mix(t.text,t.bg,.62);
+  var surface2=mix(t.surface,t.accent,.06),borderStrong=mix(t.border,t.text,.25);
+  root.setProperty('--bg',t.bg);
+  root.setProperty('--sidebar',t.sidebar);
+  root.setProperty('--surface',t.surface);
+  root.setProperty('--surface-2',surface2);
+  root.setProperty('--border',t.border);
+  root.setProperty('--border-strong',borderStrong);
+  root.setProperty('--text',t.text);
+  root.setProperty('--muted',muted);
+  root.setProperty('--faint',faint);
+  root.setProperty('--cyan',t.accent);
+  root.setProperty('--radius',t.radius+'px');
+  root.setProperty('--accent-soft',rgba(t.accent,.12));
+  root.setProperty('--accent-line',rgba(t.accent,.42));
+  root.setProperty('--topbar-bg',rgba(t.bg,.92));
+  document.body.style.fontSize=t.font+'px';
+  // brand
+  var icon=document.getElementById('brandIcon');
+  if(t.brand.avatar){icon.innerHTML='<img src="'+t.brand.avatar+'" alt="avatar"><span class="brand-edit">更换<br>头像</span>'}
+  else{icon.innerHTML=esc(t.brand.avatarText||'WB')+'<span class="brand-edit">更换<br>头像</span>'}
+  document.getElementById('brandName').textContent=t.brand.name||'CONSOLE';
+  document.getElementById('brandSub').textContent=t.brand.sub||'LOCAL WORKSPACE / PROTOTYPE';
+  var topAvatar=document.getElementById('topAvatar');
+  if(topAvatar){
+    if(t.brand.avatar)topAvatar.innerHTML='<img src="'+t.brand.avatar+'" alt="avatar">';
+    else topAvatar.textContent=t.brand.avatarText||'WB';
+  }
+}
+function applyPreset(id){
+  var p=THEME_PRESETS.filter(function(x){return x.id===id})[0];
+  if(!p)return;
+  themeState.accent=p.accent;themeState.bg=p.bg;themeState.sidebar=p.sidebar;
+  themeState.surface=p.surface;themeState.text=p.text;themeState.border=p.border;
+  themeState.radius=p.radius;themeState.font=p.font;themeState.preset=id;
+  applyTheme();saveTheme();renderThemePanel();toast('已应用：'+p.name);
+}
+function renderThemePanel(){
+  // presets
+  var g=document.getElementById('presetGrid');
+  g.innerHTML=THEME_PRESETS.map(function(p){
+    var active=p.id===themeState.preset?' active':'';
+    return '<div class="card theme-preset'+active+'" data-preset="'+p.id+'">'+
+      '<div class="theme-swatch"><i style="background:'+p.bg+'"></i><i style="background:'+p.sidebar+'"></i><i style="background:'+p.surface+'"></i><i style="background:'+p.accent+'"></i></div>'+
+      '<div class="entry-name">'+esc(p.name)+'</div><div class="entry-desc">'+esc(p.desc)+'</div></div>';
+  }).join('');
+  // color pickers
+  var colorMap={cAccent:'accent',cBg:'bg',cSidebar:'sidebar',cSurface:'surface',cText:'text',cBorder:'border'};
+  for(var id in colorMap){
+    var key=colorMap[id],el=document.getElementById(id);
+    el.value=themeState[key];
+    document.getElementById('h'+id.slice(1)).textContent=themeState[key].toUpperCase();
+  }
+  document.getElementById('cRadius').value=themeState.radius;
+  document.getElementById('vRadius').textContent=themeState.radius+'px';
+  document.getElementById('cFont').value=themeState.font;
+  document.getElementById('vFont').textContent=themeState.font+'px';
+  // brand
+  document.getElementById('avatarText').value=themeState.brand.avatarText||'';
+  document.getElementById('brandNameInput').value=themeState.brand.name||'';
+  document.getElementById('brandSubInput').value=themeState.brand.sub||'';
+}
+function bindThemeEvents(){
+  document.getElementById('presetGrid').addEventListener('click',function(e){
+    var el=e.target.closest('[data-preset]');
+    if(el)applyPreset(el.dataset.preset);
+  });
+  var colorMap={cAccent:'accent',cBg:'bg',cSidebar:'sidebar',cSurface:'surface',cText:'text',cBorder:'border'};
+  for(var id in colorMap){
+    (function(id,key){
+      document.getElementById(id).addEventListener('input',function(e){
+        themeState[key]=e.target.value;themeState.preset='custom';
+        document.getElementById('h'+id.slice(1)).textContent=e.target.value.toUpperCase();
+        applyTheme();saveTheme();
+      });
+    })(id,colorMap[id]);
+  }
+  document.getElementById('cRadius').addEventListener('input',function(e){
+    themeState.radius=parseInt(e.target.value,10);themeState.preset='custom';
+    document.getElementById('vRadius').textContent=themeState.radius+'px';
+    applyTheme();saveTheme();
+  });
+  document.getElementById('cFont').addEventListener('input',function(e){
+    themeState.font=parseInt(e.target.value,10);themeState.preset='custom';
+    document.getElementById('vFont').textContent=themeState.font+'px';
+    applyTheme();saveTheme();
+  });
+  document.getElementById('avatarText').addEventListener('input',function(e){
+    themeState.brand.avatarText=e.target.value||'WB';applyTheme();saveTheme();
+  });
+  document.getElementById('brandNameInput').addEventListener('input',function(e){
+    themeState.brand.name=e.target.value;applyTheme();saveTheme();
+  });
+  document.getElementById('brandSubInput').addEventListener('input',function(e){
+    themeState.brand.sub=e.target.value;applyTheme();saveTheme();
+  });
+  function openAvatarPicker(){document.getElementById('avatarFile').click()}
+  document.getElementById('brandIcon').addEventListener('click',openAvatarPicker);
+  document.getElementById('pickAvatar').addEventListener('click',openAvatarPicker);
+  document.getElementById('avatarFile').addEventListener('change',function(e){
+    var f=e.target.files&&e.target.files[0];if(!f)return;
+    if(f.size>2*1024*1024){toast('图片请小于 2MB');return}
+    var r=new FileReader();
+    r.onload=function(){themeState.brand.avatar=r.result;applyTheme();saveTheme();toast('头像已更新')};
+    r.readAsDataURL(f);
+  });
+  document.getElementById('clearAvatar').addEventListener('click',function(){
+    themeState.brand.avatar='';applyTheme();saveTheme();toast('已切换为文字头像');
+  });
+  document.getElementById('resetTheme').addEventListener('click',function(){
+    showModal('恢复默认主题','将清除所有自定义配色、字号与品牌设置，恢复为默认深空黑主题。','',function(){
+      themeState=defaultTheme();applyTheme();saveTheme();renderThemePanel();toast('已恢复默认主题');
+    },true);
+  });
+  document.getElementById('loadWbThemes').addEventListener('click',function(){
+    var box=document.getElementById('wbThemeList');
+    box.innerHTML='<div class="list-row"><div class="row-main"><div class="row-title">读取中…</div></div></div>';
+    api('/api/wb-themes',null,function(d){
+      if(!d||!d.themes){box.innerHTML='<div class="list-row"><div class="row-main"><div class="row-title">读取失败</div></div></div>';return}
+      box.innerHTML=d.themes.map(function(t,i){
+        return '<div class="wb-theme-row"><div class="wb-theme-dot" style="background:'+(t.accent||'#888')+'"></div>'+
+          '<div class="wb-theme-name">'+esc(t.name)+'<small>'+esc(t.appearance||'skin')+' · '+(t.accent||'-')+'</small></div>'+
+          '<button class="btn" data-wbapply="'+i+'">应用</button></div>';
+      }).join('')||'<div class="list-row"><div class="row-main"><div class="row-title">未发现本地皮肤</div></div></div>';
+      box.querySelectorAll('[data-wbapply]').forEach(function(b){b.addEventListener('click',function(){
+        var t=d.themes[parseInt(b.dataset.wbapply,10)];
+        if(!t)return;
+        themeState.accent=t.accent||themeState.accent;
+        themeState.bg=t.bg||themeState.bg;
+        themeState.text=t.text||themeState.text;
+        themeState.surface=t.surface||themeState.surface;
+        themeState.sidebar=t.bg||themeState.sidebar;
+        themeState.border=mix(themeState.bg,themeState.text,.18);
+        themeState.preset='custom';
+        applyTheme();saveTheme();renderThemePanel();toast('已应用 WorkBuddy 主题：'+t.name);
+      })});
+    });
+  });
+}
+
+function renderNotifications(){
+  var ex=state.trash.filter(function(t){return t.status==='warn'}).length;
+  var ep=state.trash.filter(function(t){return t.status==='expired'}).length;
+  document.getElementById('statTasks').textContent=state.automations.length;
+  document.getElementById('statExpiring').textContent=ex;
+  document.getElementById('statExpired').textContent=ep;
+  document.getElementById('statTrashNotify').textContent=state.trash.length;
+  document.getElementById('notifyBadge').textContent=state.automations.length+ex+ep;
+  document.getElementById('taskList').innerHTML=state.automations.length ? state.automations.map(function(a){
+    return '<div class="list-row"><div class="notify-time">'+esc(a.time||'—')+'</div><div class="row-main"><div class="row-title">'+esc(a.name||a.title||'未命名任务')+'</div><div class="row-sub">'+esc(a.schedule||'')+'</div></div><span class="tag warn">待执行</span></div>';
+  }).join('') : '<div class="list-row"><div class="row-main"><div class="row-title">暂无定时任务快照</div><div class="row-sub">请在对话中让我同步自动化配置</div></div></div>';
+  document.getElementById('expiryList').innerHTML=state.trash.map(function(t){
+    var cls=t.status==='expired'?'off':(t.status==='warn'?'warn':'ok');
+    return '<div class="list-row"><div class="row-main"><div class="row-title">'+esc(t.name)+'</div><div class="row-sub">已存放 '+t.days+' 天 · '+esc(t.label)+'</div></div><span class="tag '+cls+'">'+esc(t.label)+'</span></div>';
+  }).join('') || '<div class="list-row"><div class="row-main"><div class="row-title">回收站为空</div></div></div>';
+  document.getElementById('knowledgeAuto').innerHTML=state.automations.length ? state.automations.map(function(a){
+    return '<div class="list-row"><div class="row-main"><div class="row-title">'+esc(a.name||a.title||'未命名任务')+'</div><div class="row-sub">'+esc(a.schedule||'')+'</div></div></div>';
+  }).join('') : '<div class="list-row"><div class="row-main"><div class="row-title">暂无快照</div><div class="row-sub">需对话桥接写入</div></div></div>';
+}
+function renderKnowledgeList(){
+  var kb=state.knowledge||{};
+  var docs=kb.documents||[];
+  var q=kbQuery.trim().toLowerCase();
+  var rows=docs.filter(function(d){
+    if(!q)return true;
+    return [d.title,d.name,d.rel_path,d.summary,(d.tags||[]).join(' '),d.text].some(function(x){
+      return String(x||'').toLowerCase().indexOf(q)>=0;
+    });
+  });
+  document.getElementById('kbListHint').textContent=rows.length+' / '+docs.length+' DOCS';
+  document.getElementById('kbList').innerHTML=rows.map(function(d){
+    var tags=(d.tags||[]).slice(0,5).map(function(t){return '<span class="tag">'+esc(t)+'</span>'}).join('');
+    return '<div class="list-row"><div class="row-main">'+
+      '<div class="row-title">'+esc(d.title||d.name)+'</div>'+
+      '<div class="row-sub">'+esc(d.rel_path)+' · '+esc(d.modified||'—')+' · '+esc(d.size||'—')+' B</div>'+
+      (d.summary?'<div class="note" style="margin-top:5px;margin-bottom:0">'+esc(d.summary)+'</div>':'')+
+      (tags?'<div class="kb-doc-tags">'+tags+'</div>':'')+
+      '</div><button class="link-btn" data-kb-open="'+esc(d.path)+'">查看/编辑</button>'+
+      '<button class="link-btn" data-kb-folder="'+esc(d.path)+'">打开目录</button></div>';
+  }).join('') || '<div class="list-row"><div class="row-main"><div class="row-title">'+
+    (docs.length?'未找到匹配文档':'索引目录为空')+'</div><div class="row-sub">'+
+    (docs.length?'换个关键词试试':'把 .md / .txt 等文本文件放入索引目录后点击“重建索引”')+'</div></div></div>';
+}
+function renderKnowledgeSources(){
+  var c=state.connectors||{};
+  var list=(c.connectors||[]).map(function(x){
+    var ok=x.status==='connected';
+    return '<div class="source"><div class="source-icon">'+esc((x.name_zh||x.name||'EXT').slice(0,3).toUpperCase())+'</div>'+
+      '<div><div class="source-name">'+esc(x.name_zh||x.name||'外部连接器')+'</div><div class="source-sub">connector · '+esc(x.plugin_id||x.name||'')+'</div></div>'+
+      '<span class="tag '+(ok?'ok':(x.enabled===false?'off':'warn'))+'">'+(ok?'已连接':(x.enabled===false?'停用':'待授权'))+'</span></div>';
+  });
+  var builtin=(c.builtin||[]).map(function(x){
+    return '<div class="source"><div class="source-icon">'+esc((x.name||'IN').slice(0,3).toUpperCase())+'</div>'+
+      '<div><div class="source-name">'+esc(x.name_zh||x.name||'内置能力')+'</div><div class="source-sub">built-in</div></div>'+
+      '<span class="tag info">可用</span></div>';
+  });
+  document.getElementById('kbSources').innerHTML=list.concat(builtin).join('') || '<div class="list-row"><div class="row-main"><div class="row-title">暂无连接器快照</div></div></div>';
+}
+function openKnowledgeDoc(path){
+  if(!path){toast('文档路径为空');return}
+  var d=((state&&state.knowledge&&state.knowledge.documents)||[]).filter(function(x){return x.path===path})[0];
+  api('/api/read-file',{path:path},function(r){
+    if(r&&r.ok!==false)openEditor(path,(d&&d.title)||baseName(path),r.content||'');
+  });
+}
+function openKnowledgeFolder(path){
+  if(!path){toast('文档路径为空');return}
+  var dir=String(path).replace(/[\\/][^\\/]*$/,'');
+  if(dir)openSystemFolder(dir);
+}
+function renderKnowledge(){
+  if(!state)return;
+  var kb=state.knowledge||{};
+  var docs=kb.documents||[];
+  document.getElementById('kbCount').textContent=(kb.count!=null?kb.count:docs.length);
+  document.getElementById('kbBuiltAt').textContent=kb.built_at?('最近索引 '+kb.built_at):'尚未建立索引';
+  document.getElementById('kbRoot').textContent=kb.root||'—';
+  document.getElementById('kbSearchable').textContent=docs.length;
+  var cc=((state.connectors||{}).connectors||[]).filter(function(x){return x.status==='connected'}).length;
+  document.getElementById('kbConnectors').textContent=cc;
+  var input=document.getElementById('kbPathInput');
+  if(document.activeElement!==input)input.value=kb.root||'';
+  var st=document.getElementById('kbStatus');
+  if(kb.error){st.textContent='当前状态：'+kb.error;st.className='setting-status bad'}
+  else if(!kb.valid){st.textContent='当前状态：索引目录不可用';st.className='setting-status bad'}
+  else{st.textContent='当前状态：有效 · '+docs.length+' 篇文档 · 最近索引 '+(kb.built_at||'—');st.className='setting-status'}
+  renderKnowledgeList();
+  renderKnowledgeSources();
+}
+function renderAll(){
+  renderDashboard();renderConnectors();renderSkills();renderFiles();renderProjects();renderTrash();renderKnowledge();renderMemory();renderProfile();renderNotifications();refreshStatusText();
+  document.getElementById('projectBadge').textContent=state.projects.length;
+  document.getElementById('skillBadge').textContent=state.skills.length;
+}
+
+document.addEventListener('click',function(e){
+  var t=e.target;
+  var d=t.closest('[data-del]');
+  if(d){doDelete(d.dataset.del,d.dataset.dname||d.dataset.del,d.dataset.kind||'文件');return}
+  var ed=t.closest('[data-edit]');
+  if(ed){
+    var path=ed.dataset.edit,name=ed.dataset.ename;
+    api('/api/read-file',{path:path},function(r){if(r)openEditor(path,name,r.content)});
+    return;
+  }
+  var en=t.closest('[data-enter]');
+  if(en){openBrowse(en.dataset.enter,en.dataset.ename);return}
+  var fe=t.closest('[data-fenter]');
+  if(fe){openFileDir(fe.dataset.fenter,fe.dataset.fname);return}
+  var ko=t.closest('[data-kb-open]');
+  if(ko){openKnowledgeDoc(ko.dataset.kbOpen);return}
+  var kf=t.closest('[data-kb-folder]');
+  if(kf){openKnowledgeFolder(kf.dataset.kbFolder);return}
+  var sk=t.closest('[data-skill]');
+  if(sk){openSkillDetail(sk.dataset.skill,sk.dataset.level||'用户级');return}
+  var rs=t.closest('[data-restore]');
+  if(rs){doRestore(rs.dataset.restore,rs.dataset.rname);return}
+  var pg=t.closest('[data-purge]');
+  if(pg){doPurge(pg.dataset.purge,pg.dataset.pname);return}
+});
+
+function saveProfile(){
+  var items=[];
+  document.querySelectorAll('textarea[data-file]').forEach(function(el){
+    items.push({path:'__PROFILE__'+el.dataset.file,content:el.value});
+  });
+  var done=0;
+  items.forEach(function(it){
+    var name=it.path.slice('__PROFILE__'.length);
+    api('/api/save-file',{path:'__PROFILE__'+name,content:it.content},function(d){done++;if(done===items.length){toast('个人资料已保存');loadState()}});
+  });
+}
+document.getElementById('saveProfile').addEventListener('click',saveProfile);
+document.getElementById('saveProfile2').addEventListener('click',saveProfile);
+document.getElementById('reloadProfile').addEventListener('click',function(){loadState()});
+
+document.getElementById('browseClose').addEventListener('click',function(){browseMask.classList.remove('show')});
+browseMask.addEventListener('click',function(e){if(e.target===browseMask){browseMask.classList.remove('show')}});
+document.getElementById('refreshAll').addEventListener('click',function(){loadState(function(){toast('已刷新')})});
+document.getElementById('topRefresh').addEventListener('click',function(){loadState(function(){toast('已刷新本地数据')})});
+document.getElementById('refreshFiles').addEventListener('click',function(){loadState()});
+document.getElementById('fileBack').addEventListener('click',function(){fileCurrentPath=null;document.getElementById('fileProjectList').style.display='';document.getElementById('fileDetailView').style.display='none'});
+document.getElementById('openFolderBtn').addEventListener('click',function(){if(fileCurrentPath)openSystemFolder(fileCurrentPath)});
+document.getElementById('refreshConnectors').addEventListener('click',function(){loadState()});
+document.getElementById('refreshSkills').addEventListener('click',function(){loadState()});
+document.getElementById('kbSearch').addEventListener('input',function(){kbQuery=this.value||'';renderKnowledgeList()});
+document.getElementById('kbClearSearch').addEventListener('click',function(){document.getElementById('kbSearch').value='';kbQuery='';renderKnowledgeList()});
+document.getElementById('kbRebuild').addEventListener('click',function(){
+  api('/api/knowledge-rebuild',{},function(d){if(d&&d.index){toast('索引已重建：'+d.index.count+' 篇文档');loadState()}});
+});
+document.getElementById('kbOpenFolder').addEventListener('click',function(){
+  var root=(state&&state.knowledge&&state.knowledge.root)||'';
+  if(root)openSystemFolder(root);else toast('索引目录不可用');
+});
+document.getElementById('kbPickFolder').addEventListener('click',function(){
+  var p=document.getElementById('kbPathInput').value.trim();
+  if(!p){toast('请输入目录路径');return}
+  api('/api/check-path',{path:p},function(d){toast(d&&d.exists?'目录存在':'目录不存在，请先创建')});
+});
+document.getElementById('kbSavePath').addEventListener('click',function(){
+  var p=document.getElementById('kbPathInput').value.trim();
+  api('/api/knowledge-config',{path:p},function(d){
+    if(d&&d.index){toast('索引目录已设置：'+d.index.count+' 篇文档');loadState()}
+  });
+});
+document.getElementById('kbResetPath').addEventListener('click',function(){
+  api('/api/knowledge-config',{path:''},function(d){if(d&&d.index){toast('已恢复默认索引目录');loadState()}});
+});
+document.getElementById('deleteGroups').addEventListener('click',deleteSelectedGroups);
+document.getElementById('deleteSkills').addEventListener('click',deleteSelectedSkills);
+document.getElementById('skillCheckAll').addEventListener('change',function(){
+  var on=this.checked;
+  document.querySelectorAll('[data-skill-check]').forEach(function(el){el.checked=on});
+});
+document.getElementById('skillGroups').addEventListener('click',function(e){
+  if(e.target.closest('[data-group-check]'))return;
+  var g=e.target.closest('[data-group]');
+  if(g)openSkillGroup(g.dataset.group);
+});
+document.getElementById('skillBack').addEventListener('click',function(){
+  currentSkillGroup=null;
+  document.getElementById('skillGroupView').style.display='none';
+  document.getElementById('skillGroups').style.display='';
+});
+document.getElementById('skillSearch').addEventListener('input',function(){if(currentSkillGroup)openSkillGroup(currentSkillGroup)});
+document.getElementById('skillDetailClose').addEventListener('click',function(){document.getElementById('skillMask').classList.remove('show')});
+document.getElementById('skillMask').addEventListener('click',function(e){if(e.target===this)this.classList.remove('show')});
+document.getElementById('refreshFiles').addEventListener('click',function(){loadState()});
+document.getElementById('refreshProjects').addEventListener('click',function(){loadState()});
+document.getElementById('refreshMemory').addEventListener('click',function(){loadState()});
+document.getElementById('refreshNotify').addEventListener('click',function(){loadState(function(){document.getElementById('lastRefresh').textContent='上次刷新 '+fmtTime()})});
+document.getElementById('autoToggle').addEventListener('click',function(){
+  autoRefresh=!autoRefresh;this.textContent='自动刷新：'+(autoRefresh?'开':'关');
+});
+document.getElementById('emptyTrash').addEventListener('click',function(){
+  ensureLocation(function(){
+    if(!state.trash.length){toast('回收站为空');return}
+    showModal('清空回收站','将永久删除回收站内全部 '+state.trash.length+' 个条目，不调用系统回收站，不可恢复。','',function(){
+      api('/api/purge',{},function(d){if(d){toast('回收站已清空');loadState()}});
+    },true);
+  });
+});
+// 主题初始化：应用已保存的主题，绑定交互，渲染面板
+themeState=loadTheme();
+applyTheme();
+bindThemeEvents();
+bindGlobalSearch();
+renderThemePanel();
+setInterval(function(){if(autoRefresh)loadState(function(){document.getElementById('lastRefresh').textContent='上次刷新 '+fmtTime()})},30000);
+loadState(function(){document.getElementById('lastRefresh').textContent='上次刷新 '+fmtTime()});
+</script>
+</body>
+</html>
