@@ -1,0 +1,10 @@
+# 本地个人数据（回收站记录、连接器快照、定时任务快照、知识索引）
+# 这些文件由本机运行时生成，包含个人路径与内容，不应提交到仓库
+config.json
+connectors.json
+automations.json
+knowledge-index.json
+
+# Python 缓存
+__pycache__/
+*.py[cod]
