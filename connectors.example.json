@@ -1,0 +1,9 @@
+{
+  "synced_at": "",
+  "source": "示例模板：由 WorkBuddy 会话桥接写入后替换本文件",
+  "connectors": [],
+  "builtin": [
+    { "name": "资料库", "desc": "本地与云端资料统一检索" },
+    { "name": "Agent Mail", "desc": "智能体邮箱收发能力（内置）" }
+  ]
+}
